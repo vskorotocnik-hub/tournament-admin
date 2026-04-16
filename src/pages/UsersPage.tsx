@@ -717,7 +717,7 @@ export default function UsersPage() {
                   <tbody>
                     {ipLogs.map(log => {
                       const dt = new Date(log.loggedAt);
-                      const actionLabels: Record<string, string> = { LOGIN: '🔑 Вход', REGISTER: '📝 Регистрация', TELEGRAM: '📱 Telegram', GOOGLE: '🔵 Google' };
+                      const actionLabels: Record<string, string> = { LOGIN: '🔑 Вход', REGISTER: '📝 Регистрация', TELEGRAM: '📱 TG Widget', TELEGRAM_BOT: '🤖 TG Bot', GOOGLE: '🔵 Google' };
                       return (
                         <tr key={log.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                           <td className="px-2 py-2 text-zinc-400 text-xs whitespace-nowrap">{dt.toLocaleDateString('ru')} {dt.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}</td>
