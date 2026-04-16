@@ -48,6 +48,9 @@ export default function UsersPage() {
   const [ucReason, setUcReason] = useState('');
   const [banReasonText, setBanReasonText] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [showIpModal, setShowIpModal] = useState(false);
+  const [ipLogs, setIpLogs] = useState<Array<{ id: string; ip: string; action: string; userAgent: string | null; loggedAt: string }>>([]);
+  const [ipLoading, setIpLoading] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => { setSearchDebounced(search); setPage(1); }, 400);
@@ -393,6 +396,10 @@ export default function UsersPage() {
                   setShowRestrictModal(true); setRestrictLoading(true);
                   securityApi.getRestrictions(selectedUser.id).then(setRestrictions).catch(() => {}).finally(() => setRestrictLoading(false));
                 }} className="flex-1 py-2.5 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-medium rounded-xl transition-colors">🛡 Ограничения</button>
+                <button onClick={() => {
+                  setShowIpModal(true); setIpLoading(true);
+                  securityApi.userIpLogs(selectedUser.id).then(setIpLogs).catch(() => {}).finally(() => setIpLoading(false));
+                }} className="flex-1 py-2.5 bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-medium rounded-xl transition-colors">🔍 IP</button>
                 <button onClick={() => handleBanClick(selectedUser)} disabled={actionLoading || selectedUser.role === 'ADMIN'} className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-30">
                   {selectedUser.isBanned ? 'Разбанить' : 'Забанить'}
                 </button>
@@ -669,6 +676,54 @@ export default function UsersPage() {
                           <td className={`px-2 py-2 text-right font-bold ${isCredit ? 'text-emerald-400' : 'text-red-400'}`}>{isCredit ? '+' : ''}{tx.amount} UC</td>
                           <td className="px-2 py-2 text-right text-zinc-400">{tx.balanceAfter} UC</td>
                           <td className="px-2 py-2 text-zinc-300 text-xs max-w-[200px] truncate" title={tx.reason}>{reasonLabels[tx.reason] || tx.reason}{tx.refId ? ` · #${tx.refId.slice(-6)}` : ''}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Модалка IP логов */}
+      {showIpModal && selectedUser && (
+        <>
+          <div className="fixed inset-0 bg-black/70 z-50" onClick={() => { setShowIpModal(false); setIpLogs([]); }} />
+          <div className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[600px] md:max-h-[80vh] bg-zinc-900 border border-zinc-800 rounded-2xl z-50 overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="text-lg font-bold text-white">🔍 IP логи — {selectedUser.username}</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">{ipLogs.length} записей</p>
+              </div>
+              <button onClick={() => { setShowIpModal(false); setIpLogs([]); }} className="text-zinc-500 hover:text-white">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-4">
+              {ipLoading ? (
+                <p className="text-zinc-500 text-sm text-center py-8">Загрузка...</p>
+              ) : ipLogs.length === 0 ? (
+                <p className="text-zinc-500 text-sm text-center py-8">Нет IP логов</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead><tr className="text-zinc-500 text-[11px] uppercase tracking-wider border-b border-zinc-800">
+                    <th className="px-2 py-2 text-left">Дата</th>
+                    <th className="px-2 py-2 text-left">IP</th>
+                    <th className="px-2 py-2 text-left">Действие</th>
+                    <th className="px-2 py-2 text-left">User Agent</th>
+                  </tr></thead>
+                  <tbody>
+                    {ipLogs.map(log => {
+                      const dt = new Date(log.loggedAt);
+                      const actionLabels: Record<string, string> = { LOGIN: '🔑 Вход', REGISTER: '📝 Регистрация', TELEGRAM: '📱 Telegram', GOOGLE: '🔵 Google' };
+                      return (
+                        <tr key={log.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
+                          <td className="px-2 py-2 text-zinc-400 text-xs whitespace-nowrap">{dt.toLocaleDateString('ru')} {dt.toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}</td>
+                          <td className="px-2 py-2 font-mono text-white text-xs">{log.ip}</td>
+                          <td className="px-2 py-2 text-xs">{actionLabels[log.action] || log.action}</td>
+                          <td className="px-2 py-2 text-zinc-500 text-xs max-w-[200px] truncate" title={log.userAgent || ''}>{log.userAgent ? log.userAgent.slice(0, 50) : '—'}</td>
                         </tr>
                       );
                     })}
