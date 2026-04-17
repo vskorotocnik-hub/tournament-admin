@@ -162,6 +162,33 @@ export interface AuthResponse {
   refreshToken: string;
 }
 
+export type LoginResponse =
+  | AuthResponse
+  | {
+      requires2FA: true;
+      pending2faToken: string;
+      user: { id: string; username: string };
+    };
+
+export function isTwoFactorChallenge(
+  r: LoginResponse
+): r is Extract<LoginResponse, { requires2FA: true }> {
+  return (r as any).requires2FA === true;
+}
+
+export interface TwoFaStatus {
+  enabled: boolean;
+  enabledAt: string | null;
+  backupCodesRemaining: number;
+  required: boolean;
+}
+
+export interface TwoFaSetupResponse {
+  secret: string;
+  otpauthUrl: string;
+  qrDataUrl: string;
+}
+
 export interface MeResponse {
   user: AuthUser;
 }
@@ -251,18 +278,59 @@ export interface FinanceStatsResponse {
 
 export const authApi = {
   login: (data: { email: string; password: string }) =>
-    apiFetch<AuthResponse>('/api/auth/login', { method: 'POST', body: data }),
+    apiFetch<LoginResponse>('/api/auth/login', { method: 'POST', body: data }),
+
+  loginVerify2fa: (data: { pending2faToken: string; code: string }) =>
+    apiFetch<AuthResponse>('/api/auth/2fa/login-verify', { method: 'POST', body: data }),
 
   me: () => apiFetch<MeResponse>('/api/auth/me'),
 
   logout: (refreshToken: string) =>
     apiFetch('/api/auth/logout', { method: 'POST', body: { refreshToken } }),
 
+  // 2FA management (must be called with an active session)
+  twofaStatus: () => apiFetch<TwoFaStatus>('/api/auth/2fa/status'),
+  twofaSetup:  () => apiFetch<TwoFaSetupResponse>('/api/auth/2fa/setup', { method: 'POST' }),
+  twofaVerify: (code: string) =>
+    apiFetch<{ backupCodes: string[] }>('/api/auth/2fa/verify', { method: 'POST', body: { code } }),
+  twofaDisable: (code: string) =>
+    apiFetch<{ ok: boolean }>('/api/auth/2fa/disable', { method: 'POST', body: { code } }),
+  twofaRegenBackup: (code: string) =>
+    apiFetch<{ backupCodes: string[] }>('/api/auth/2fa/backup-codes/regenerate', { method: 'POST', body: { code } }),
+
   setup: () =>
     apiFetch<{ message: string }>('/api/admin/setup', { method: 'POST' }),
 };
 
 // ─── АДМИН API ──────────────────────────────────────────────
+
+export interface DisputeFeeConfig {
+  enabled: boolean;
+  amountUsd: number;
+  perTypeEnabled: { account: boolean; boost: boolean; rental: boolean };
+  perTypeAmount: { account: number | null; boost: number | null; rental: number | null };
+}
+
+export interface PlatformFeesConfig {
+  defaultPct: number;
+  perTypePct: { account: number | null; boost: number | null; rental: number | null };
+}
+
+export interface UsernameChangeConfig {
+  firstFree: boolean;
+  priceUsd: number;
+}
+
+export type FeatureModuleKey =
+  | 'rental' | 'account' | 'boost' | 'uc'
+  | 'tournaments' | 'globalTournaments' | 'clan'
+  | 'withdrawal' | 'lessons' | 'quests' | 'support';
+
+export interface FeatureFlagsConfig {
+  maintenance: boolean;
+  maintenanceMessage: string;
+  modules: Record<FeatureModuleKey, boolean>;
+}
 
 export const adminApi = {
   stats: () =>
@@ -312,6 +380,64 @@ export const adminApi = {
     apiFetch<Record<string, string>>('/api/admin/config'),
   updateConfig: (data: Record<string, string>) =>
     apiFetch<{ ok: boolean }>('/api/admin/config', { method: 'PUT', body: data }),
+
+  // Dispute Fee Config
+  getDisputeFeeConfig: () =>
+    apiFetch<{ config: DisputeFeeConfig }>('/api/admin/config/dispute-fee'),
+  updateDisputeFeeConfig: (data: DisputeFeeConfig) =>
+    apiFetch<{ config: DisputeFeeConfig }>('/api/admin/config/dispute-fee', { method: 'PUT', body: data }),
+
+  // Platform Fees Config (commissions)
+  getPlatformFeesConfig: () =>
+    apiFetch<{ config: PlatformFeesConfig }>('/api/admin/config/platform-fees'),
+  updatePlatformFeesConfig: (data: PlatformFeesConfig) =>
+    apiFetch<{ config: PlatformFeesConfig }>('/api/admin/config/platform-fees', { method: 'PUT', body: data }),
+
+  // Username Change Config
+  getUsernameChangeConfig: () =>
+    apiFetch<{ config: UsernameChangeConfig }>('/api/admin/config/username-change'),
+  updateUsernameChangeConfig: (data: UsernameChangeConfig) =>
+    apiFetch<{ config: UsernameChangeConfig }>('/api/admin/config/username-change', { method: 'PUT', body: data }),
+
+  // Feature Flags Config
+  getFeatureFlagsConfig: () =>
+    apiFetch<{ config: FeatureFlagsConfig }>('/api/admin/config/feature-flags'),
+  updateFeatureFlagsConfig: (data: FeatureFlagsConfig) =>
+    apiFetch<{ config: FeatureFlagsConfig }>('/api/admin/config/feature-flags', { method: 'PUT', body: data }),
+
+  invalidateConfigCache: () =>
+    apiFetch<{ ok: boolean }>('/api/admin/config/invalidate-cache', { method: 'POST' }),
+
+  // Audit log
+  auditLog: (params?: Record<string, string | number | undefined>) => {
+    const q = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined && v !== '') q.set(k, String(v));
+      });
+    }
+    const qs = q.toString();
+    return apiFetch<{
+      items: Array<{
+        id: string;
+        adminId: string;
+        adminName: string;
+        action: string;
+        targetType: string | null;
+        targetId: string | null;
+        targetLabel: string | null;
+        metadata: unknown;
+        ip: string | null;
+        userAgent: string | null;
+        createdAt: string;
+      }>;
+      total: number;
+      page: number;
+      totalPages: number;
+    }>(`/api/admin/audit-log${qs ? `?${qs}` : ''}`);
+  },
+  auditLogAdmins: () =>
+    apiFetch<Array<{ adminId: string; adminName: string; count: number }>>('/api/admin/audit-log/admins'),
 
   // Withdrawals
   listWithdrawals: (status?: string) =>

@@ -1,13 +1,23 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { authApi, getStoredTokens, storeTokens, clearTokens } from '../lib/api';
+import { authApi, getStoredTokens, storeTokens, clearTokens, isTwoFactorChallenge } from '../lib/api';
 import type { AuthUser } from '../lib/api';
+
+export interface TwoFactorChallenge {
+  pending2faToken: string;
+  username: string;
+}
+
+interface LoginResult {
+  challenge?: TwoFactorChallenge;
+}
 
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  verify2fa: (pending2faToken: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -46,8 +56,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
   }, [refreshUser]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     const res = await authApi.login({ email, password });
+    if (isTwoFactorChallenge(res)) {
+      return {
+        challenge: {
+          pending2faToken: res.pending2faToken,
+          username: res.user.username,
+        },
+      };
+    }
+    storeTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+    await refreshUser();
+    return {};
+  };
+
+  const verify2fa = async (pending2faToken: string, code: string) => {
+    const res = await authApi.loginVerify2fa({ pending2faToken, code });
     storeTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
     await refreshUser();
   };
@@ -67,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = user?.role === 'ADMIN';
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isAdmin, loading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isAdmin, loading, login, verify2fa, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

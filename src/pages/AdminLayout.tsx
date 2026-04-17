@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { authApi, type TwoFaStatus } from '../lib/api';
 
 const navItems = [
   { path: '/', label: 'Дашборд', icon: '📊', end: true },
@@ -20,14 +21,34 @@ const navItems = [
   { path: '/support', label: 'Поддержка', icon: '💬' },
   { path: '/banners', label: 'Банеры', icon: '🖼️' },
   { path: '/push', label: 'Push-уведомления', icon: '🔔' },
-  { path: '/content', label: 'Контент', icon: '📢' },
+  { path: '/audit', label: 'Аудит', icon: '📜' },
+  { path: '/security', label: 'Безопасность', icon: '🔐' },
   { path: '/settings', label: 'Настройки', icon: '⚙️' },
 ];
 
+// Build-time constants injected by vite (see vite.config.ts)
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
+const APP_COMMIT = typeof __APP_COMMIT__ !== 'undefined' ? __APP_COMMIT__ : 'local';
+const APP_BUILD_TIME = typeof __APP_BUILD_TIME__ !== 'undefined' ? __APP_BUILD_TIME__ : '';
+
 export default function AdminLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // 2FA gating: privileged roles must enable 2FA before they can use anything.
+  const [twoFa, setTwoFa] = useState<TwoFaStatus | null>(null);
+  useEffect(() => {
+    authApi.twofaStatus().then(setTwoFa).catch(() => {});
+  }, [user?.id, location.pathname]);
+
+  const mustSetup2fa = !!twoFa && twoFa.required && !twoFa.enabled;
+  useEffect(() => {
+    if (mustSetup2fa && location.pathname !== '/security') {
+      navigate('/security', { replace: true });
+    }
+  }, [mustSetup2fa, location.pathname, navigate]);
 
   const handleLogout = async () => {
     await logout();
@@ -77,7 +98,7 @@ export default function AdminLayout() {
         </nav>
 
         {/* Низ */}
-        <div className="p-4 border-t border-zinc-800 space-y-1">
+        <div className="p-4 border-t border-zinc-800 space-y-2">
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
@@ -85,6 +106,19 @@ export default function AdminLayout() {
             <span className="text-lg">🚪</span>
             <span>Выйти</span>
           </button>
+          <div
+            className="px-3 text-[10px] leading-tight text-zinc-600 select-text"
+            title={APP_BUILD_TIME ? `Собрано: ${new Date(APP_BUILD_TIME).toLocaleString('ru-RU')}` : undefined}
+          >
+            <div>
+              v{APP_VERSION} · <span className="font-mono">{APP_COMMIT}</span>
+            </div>
+            {APP_BUILD_TIME && (
+              <div className="text-zinc-700 truncate">
+                {new Date(APP_BUILD_TIME).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
+          </div>
         </div>
       </aside>
 

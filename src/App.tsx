@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import Toaster from './components/Toaster';
 import LoginPage from './pages/LoginPage';
 import AdminLayout from './pages/AdminLayout';
 import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
-import PlaceholderPage from './pages/PlaceholderPage';
 import RentalManagementPage from './pages/RentalManagementPage';
 import UnifiedTournamentsPage from './pages/UnifiedTournamentsPage';
 import SupportPage from './pages/SupportPage';
@@ -21,6 +21,8 @@ import LessonsPage from './pages/LessonsPage';
 import BannersPage from './pages/BannersPage';
 import PushPage from './pages/PushPage';
 import GlobalTournamentsPage from './pages/GlobalTournamentsPage';
+import AuditLogPage from './pages/AuditLogPage';
+import SecurityPage from './pages/SecurityPage';
 
 function ProtectedRoutes() {
   const { isAuthenticated, isAdmin, loading } = useAuth();
@@ -76,8 +78,9 @@ function ProtectedRoutes() {
         <Route path="banners" element={<BannersPage />} />
         <Route path="push" element={<PushPage />} />
         <Route path="global-tournaments" element={<GlobalTournamentsPage />} />
-        <Route path="content" element={<PlaceholderPage title="Контент" />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="audit" element={<AuditLogPage />} />
+        <Route path="security" element={<SecurityPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -89,6 +92,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <ProtectedRoutes />
+        <Toaster />
       </AuthProvider>
     </BrowserRouter>
   );

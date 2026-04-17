@@ -1,29 +1,52 @@
 import { useState, type FormEvent } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, type TwoFactorChallenge } from '../context/AuthContext';
 import { ApiError } from '../lib/api';
 
 export default function AdminLoginPage() {
-  const { login } = useAuth();
+  const { login, verify2fa } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 2FA second step
+  const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
+  const [otpCode, setOtpCode] = useState('');
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError('Ошибка подключения к серверу');
+      const result = await login(email, password);
+      if (result.challenge) {
+        setChallenge(result.challenge);
       }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Ошибка подключения к серверу');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handle2faSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!challenge) return;
+    setError('');
+    setLoading(true);
+    try {
+      await verify2fa(challenge.pending2faToken, otpCode.trim());
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Ошибка подключения к серверу');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelChallenge = () => {
+    setChallenge(null);
+    setOtpCode('');
+    setError('');
   };
 
   return (
@@ -35,45 +58,89 @@ export default function AdminLoginPage() {
           <p className="text-zinc-500 text-sm mt-1">Вход только для администраторов</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
-              {error}
+        {challenge ? (
+          <form onSubmit={handle2faSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 text-emerald-300 text-sm">
+              Привет, <b>{challenge.username}</b>! Введите 6-значный код из приложения-аутентификатора.
             </div>
-          )}
+            <div>
+              <label className="text-sm font-medium text-zinc-400 block mb-1.5">Код 2FA</label>
+              <input
+                type="text"
+                value={otpCode}
+                onChange={e => setOtpCode(e.target.value.replace(/[^0-9A-Za-z-]/g, '').toUpperCase())}
+                required
+                autoFocus
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="123456 или резервный код"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-lg font-mono tracking-widest text-center placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
+              />
+              <p className="text-[11px] text-zinc-600 mt-2">
+                Потеряли доступ к приложению? Введите один из ранее сохранённых резервных кодов.
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={loading || !otpCode.trim()}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white font-semibold rounded-xl transition-colors"
+            >
+              {loading ? 'Проверка...' : 'Подтвердить'}
+            </button>
+            <button
+              type="button"
+              onClick={cancelChallenge}
+              className="w-full py-2 text-zinc-500 hover:text-zinc-300 text-sm transition-colors"
+            >
+              ← Назад ко входу
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                {error}
+              </div>
+            )}
 
-          <div>
-            <label className="text-sm font-medium text-zinc-400 block mb-1.5">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              placeholder="admin@example.com"
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
-            />
-          </div>
+            <div>
+              <label className="text-sm font-medium text-zinc-400 block mb-1.5">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                placeholder="admin@example.com"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
+              />
+            </div>
 
-          <div>
-            <label className="text-sm font-medium text-zinc-400 block mb-1.5">Пароль</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
-            />
-          </div>
+            <div>
+              <label className="text-sm font-medium text-zinc-400 block mb-1.5">Пароль</label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white font-semibold rounded-xl transition-colors"
-          >
-            {loading ? 'Вход...' : 'Войти'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/50 text-white font-semibold rounded-xl transition-colors"
+            >
+              {loading ? 'Вход...' : 'Войти'}
+            </button>
+          </form>
+        )}
 
         <p className="text-center text-zinc-600 text-xs mt-6">
           Доступ ограничен. Только для роли ADMIN.
