@@ -500,26 +500,51 @@ function FeatureFlagsSection() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleSave = async () => {
-    if (!config) return;
+  /**
+   * Persist the given config to the server. Used both by the "Save" button
+   * (for maintenance message / bulk changes) and by auto-save on every
+   * toggle. Auto-save eliminates the "I flipped the switch but nothing
+   * happened" UX trap where admins forgot to click Save.
+   */
+  const persist = useCallback(async (next: FeatureFlagsConfig, silent = false) => {
     setSaving(true);
     try {
-      const { config: saved } = await adminApi.updateFeatureFlagsConfig(config);
+      const { config: saved } = await adminApi.updateFeatureFlagsConfig(next);
       setConfig(saved);
-      toast.success('Модули обновлены');
+      if (!silent) toast.success('Модули обновлены');
     } catch (e: any) {
       toast.error(e?.message || 'Ошибка сохранения');
+      // Re-read from server so UI reflects the real state after a failure.
+      load();
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-  };
+  }, [load]);
+
+  const handleSave = () => { if (config) void persist(config); };
 
   const toggleModule = (k: FeatureModuleKey) => {
-    setConfig(prev => prev ? { ...prev, modules: { ...prev.modules, [k]: !prev.modules[k] } } : prev);
+    if (!config) return;
+    const next: FeatureFlagsConfig = { ...config, modules: { ...config.modules, [k]: !config.modules[k] } };
+    setConfig(next); // optimistic
+    void persist(next, true); // auto-save
+  };
+
+  const toggleMaintenance = (on: boolean) => {
+    if (!config) return;
+    const next: FeatureFlagsConfig = { ...config, maintenance: on };
+    setConfig(next);
+    void persist(next, true);
   };
 
   const enableAll = () => {
     if (!config) return;
-    setConfig({ ...config, modules: Object.fromEntries(MODULE_META.map(m => [m.key, true])) as Record<FeatureModuleKey, boolean> });
+    const next: FeatureFlagsConfig = {
+      ...config,
+      modules: Object.fromEntries(MODULE_META.map(m => [m.key, true])) as Record<FeatureModuleKey, boolean>,
+    };
+    setConfig(next);
+    void persist(next);
   };
 
   const flushCache = async () => {
@@ -537,6 +562,20 @@ function FeatureFlagsSection() {
 
   return (
     <div className="space-y-6">
+      {/* Autosave status ribbon — makes it obvious that toggles persist
+          immediately and saves time chasing "why didn't it save" questions. */}
+      <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border ${
+        saving
+          ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+          : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+      }`}>
+        {saving ? (
+          <><span className="animate-pulse">●</span> Сохраняю...</>
+        ) : (
+          <><span>✓</span> Изменения сохраняются автоматически</>
+        )}
+      </div>
+
       {/* Maintenance mode */}
       <div className={SECTION}>
         <div>
@@ -550,7 +589,7 @@ function FeatureFlagsSection() {
           config.maintenance ? 'bg-red-500/10 border-red-500/40' : 'bg-zinc-800/50 border-zinc-800'
         }`}>
           <input type="checkbox" checked={config.maintenance}
-            onChange={e => setConfig({ ...config, maintenance: e.target.checked })}
+            onChange={e => toggleMaintenance(e.target.checked)}
             className="w-4 h-4 accent-red-500 mt-0.5" />
           <div className="flex-1">
             <p className="text-sm text-white font-medium">
