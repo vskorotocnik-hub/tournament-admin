@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi, securityApi } from '../lib/api';
 import type { AdminUserItem, UserRestriction, RestrictionType } from '../lib/api';
+import { toast } from '../lib/toast';
 
 const RESTRICTION_LABELS: Record<RestrictionType, string> = {
   MARKETPLACE: '🛒 Маркетплейс аккаунтов',
@@ -97,7 +98,7 @@ export default function UsersPage() {
       await fetchUsers();
       setSelectedUser(null);
     } catch (err: any) {
-      alert(err.message || 'Ошибка');
+      toast.error(err.message || 'Ошибка');
     } finally {
       setActionLoading(false);
     }
@@ -113,7 +114,7 @@ export default function UsersPage() {
       setSelectedUser(null);
       await fetchUsers();
     } catch (err: any) {
-      alert(err.message || 'Ошибка');
+      toast.error(err.message || 'Ошибка');
     } finally {
       setActionLoading(false);
     }
@@ -130,7 +131,7 @@ export default function UsersPage() {
       setSelectedUser(null);
       await fetchUsers();
     } catch (err: any) {
-      alert(err.message || 'Ошибка');
+      toast.error(err.message || 'Ошибка');
     } finally {
       setActionLoading(false);
     }
@@ -147,7 +148,7 @@ export default function UsersPage() {
       setSelectedUser(null);
       await fetchUsers();
     } catch (err: any) {
-      alert(err.message || 'Ошибка');
+      toast.error(err.message || 'Ошибка');
     } finally {
       setActionLoading(false);
     }
@@ -162,7 +163,7 @@ export default function UsersPage() {
       setSelectedUser(null);
       await fetchUsers();
     } catch (err: any) {
-      alert(err.message || 'Ошибка');
+      toast.error(err.message || 'Ошибка');
     } finally {
       setActionLoading(false);
     }
@@ -572,7 +573,7 @@ export default function UsersPage() {
                             await securityApi.removeRestriction(selectedUser.id, r.type);
                             const updated = await securityApi.getRestrictions(selectedUser.id);
                             setRestrictions(updated);
-                          } catch (e: any) { alert(e.message); }
+                          } catch (e: any) { toast.error(e.message); }
                           finally { setRestrictLoading(false); }
                         }}
                         className="px-3 py-1.5 bg-red-600/20 text-red-400 hover:bg-red-600/30 border border-red-600/30 rounded-lg text-xs transition-colors"
@@ -617,7 +618,7 @@ export default function UsersPage() {
                       const updated = await securityApi.getRestrictions(selectedUser.id);
                       setRestrictions(updated);
                       setNewRestrictReason('');
-                    } catch (e: any) { alert(e.message); }
+                    } catch (e: any) { toast.error(e.message); }
                     finally { setRestrictLoading(false); }
                   }}
                   className="w-full py-2.5 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-40 text-white text-sm font-medium rounded-xl transition-colors"

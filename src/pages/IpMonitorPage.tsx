@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { securityApi, adminApi, type IpGroup, type IpGroupUser } from '../lib/api';
+import { toast } from '../lib/toast';
 
 const ROLES: Record<string, string> = { ADMIN: '👑 Админ', MODERATOR: '🛡 Модер', USER: '👤 Юзер' };
 
@@ -45,7 +46,7 @@ export default function IpMonitorPage() {
       setShowBanModal(false);
       await fetchGroups();
     } catch (err: any) {
-      alert(err.message || 'Ошибка');
+      toast.error(err.message || 'Ошибка');
     } finally {
       setBanningId(null);
     }

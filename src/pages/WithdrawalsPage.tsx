@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '../lib/api';
+import { toast } from '../lib/toast';
 
 type WR = {
   id: string; userId: string; username: string; avatar: string | null;
@@ -44,7 +45,7 @@ export default function WithdrawalsPage() {
     try {
       await adminApi.completeWithdrawal(id, 'Отправлено вручную');
       load();
-    } catch (e: any) { alert(e.message || 'Ошибка'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка'); }
     setBusy(false);
   };
 
@@ -55,7 +56,7 @@ export default function WithdrawalsPage() {
       await adminApi.rejectWithdrawal(id, rejectNote.trim());
       setActionId(null); setRejectNote('');
       load();
-    } catch (e: any) { alert(e.message || 'Ошибка'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка'); }
     setBusy(false);
   };
 

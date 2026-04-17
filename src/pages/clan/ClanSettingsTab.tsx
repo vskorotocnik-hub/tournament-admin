@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import type { ClanAdminSettings } from '../../lib/clanApi';
 import { updateClanSettings } from '../../lib/clanApi';
+import { toast } from '../../lib/toast';
 
 interface Props {
   clan: ClanAdminSettings;
@@ -32,7 +33,7 @@ export default function ClanSettingsTab({ clan, onRefresh }: Props) {
       setTimeout(() => setSaved(false), 2000);
       await onRefresh();
     } catch (e: any) {
-      alert(e.message || 'Ошибка сохранения');
+      toast.error(e.message || 'Ошибка сохранения');
     }
     setSaving(false);
   };

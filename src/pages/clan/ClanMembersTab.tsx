@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ClanAdminMember } from '../../lib/clanApi';
 import { kickMember, addMember, clearAllApplications, resetClanData } from '../../lib/clanApi';
+import { toast } from '../../lib/toast';
 
 const isUrl = (s: string | null) => !!s && (s.startsWith('http://') || s.startsWith('https://'));
 
@@ -25,7 +26,7 @@ export default function ClanMembersTab({ members, maxMembers, onRefresh }: Props
 
   const handleKick = async () => {
     if (!kick) return;
-    try { await kickMember(kick, kickR.trim() || undefined); setKick(null); setKickR(''); await onRefresh(); } catch (e: any) { alert(e.message || 'Ошибка'); }
+    try { await kickMember(kick, kickR.trim() || undefined); setKick(null); setKickR(''); await onRefresh(); } catch (e: any) { toast.error(e.message || 'Ошибка'); }
   };
 
   const handleAdd = async () => {
@@ -37,7 +38,7 @@ export default function ClanMembersTab({ members, maxMembers, onRefresh }: Props
       setAddUserId('');
       setAddPubgId('');
       await onRefresh();
-    } catch (e: any) { alert(e.message || 'Ошибка добавления'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка добавления'); }
     setAddLoading(false);
   };
 
@@ -45,18 +46,18 @@ export default function ClanMembersTab({ members, maxMembers, onRefresh }: Props
     if (!confirm('⚠️ ПОЛНАЯ ОЧИСТКА! Удалить ВСЕХ участников, заявки, матчи, чаты, транзакции, распределения? Это необратимо!')) return;
     try {
       const res = await resetClanData();
-      alert(res.message);
+      toast.error(res.message);
       await onRefresh();
-    } catch (e: any) { alert(e.message || 'Ошибка очистки'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка очистки'); }
   };
 
   const handleClearApps = async () => {
     if (!confirm('Удалить ВСЕ заявки в клан и связанные матчи/сообщения? Это действие необратимо.')) return;
     try {
       const res = await clearAllApplications();
-      alert(res.message);
+      toast.error(res.message);
       await onRefresh();
-    } catch (e: any) { alert(e.message || 'Ошибка очистки заявок'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка очистки заявок'); }
   };
 
   return (
@@ -71,7 +72,7 @@ export default function ClanMembersTab({ members, maxMembers, onRefresh }: Props
           className="px-4 py-2 rounded-xl text-sm font-bold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/25 transition-all">
           � Очистить все заявки
         </button>
-        <button onClick={() => { if (maxMembers > 0 && members.length >= maxMembers) { alert(`Лимит участников (${maxMembers}) достигнут. Удалите кого-то перед добавлением.`); return; } setShowAdd(true); }}
+        <button onClick={() => { if (maxMembers > 0 && members.length >= maxMembers) { toast.error(`Лимит участников (${maxMembers}) достигнут. Удалите кого-то перед добавлением.`); return; } setShowAdd(true); }}
           className="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30 transition-all">
           + Добавить участника ({members.length}/{maxMembers})
         </button>

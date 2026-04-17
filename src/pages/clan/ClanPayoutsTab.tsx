@@ -4,6 +4,7 @@ import {
   addExternalEarning, getDistConfigs, updateDistConfig,
 } from '../../lib/clanApi';
 import type { PendingPayout, PayoutAggregates, LedgerEntry, DistConfig, DistConfigSplit, ClanAdminMember } from '../../lib/clanApi';
+import { toast } from '../../lib/toast';
 
 const TYPE_LABELS: Record<string, string> = {
   ENTRY_FEE: 'Взнос',
@@ -106,9 +107,9 @@ export default function ClanPayoutsTab({ members, onRefresh }: Props) {
     setBusy(true);
     try {
       const r = await payUser(userId);
-      alert(`Выплачено $${r.amount} (${r.entries} начислений)`);
+      toast.success(`Выплачено $${r.amount} (${r.entries} начислений)`);
       await load(); await onRefresh();
-    } catch (e: any) { alert(e.message || 'Ошибка'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка'); }
     setBusy(false);
   };
 
@@ -117,24 +118,24 @@ export default function ClanPayoutsTab({ members, onRefresh }: Props) {
     setBusy(true);
     try {
       const r = await payAllUsers();
-      alert(`Выплачено $${r.totalPaid} для ${r.usersCount} пользователей${r.errors.length ? `\n⚠️ Ошибок: ${r.errors.length}` : ''}`);
+      toast.success(`Выплачено $${r.totalPaid} для ${r.usersCount} пользователей${r.errors.length ? `\n⚠️ Ошибок: ${r.errors.length}` : ''}`);
       await load(); await onRefresh();
-    } catch (e: any) { alert(e.message || 'Ошибка'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка'); }
     setBusy(false);
   };
 
 
   const handleAddExternal = async () => {
     const amt = parseFloat(extAmount);
-    if (!amt || amt <= 0 || !extUserId.trim() || !extDesc.trim()) { alert('Укажите userId, сумму и описание'); return; }
+    if (!amt || amt <= 0 || !extUserId.trim() || !extDesc.trim()) { toast.error('Укажите userId, сумму и описание'); return; }
     if (busy) return;
     setBusy(true);
     try {
       await addExternalEarning(extUserId.trim(), amt, extDesc.trim());
       setExtUserId(''); setExtAmount(''); setExtDesc('');
-      alert('Заработок записан!');
+      toast.error('Заработок записан!');
       await load();
-    } catch (e: any) { alert(e.message || 'Ошибка'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка'); }
     setBusy(false);
   };
 
@@ -169,13 +170,13 @@ export default function ClanPayoutsTab({ members, onRefresh }: Props) {
   const handleSaveConfig = async () => {
     if (!editType || busy) return;
     const total = editSplits.reduce((s, sp) => s + sp.pct, 0);
-    if (total !== 100) { alert(`Сумма: ${total}%. Должно быть 100%.`); return; }
+    if (total !== 100) { toast.error(`Сумма: ${total}%. Должно быть 100%.`); return; }
     setBusy(true);
     try {
       await updateDistConfig(editType, editSplits);
       setEditType(null);
       await load();
-    } catch (e: any) { alert(e.message || 'Ошибка'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка'); }
     setBusy(false);
   };
 

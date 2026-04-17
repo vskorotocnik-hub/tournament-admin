@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ClanAdminApplication, ClanAdminMember } from '../../lib/clanApi';
 import { decideApplication, reassignOpponent, adminCancelApplication } from '../../lib/clanApi';
+import { toast } from '../../lib/toast';
 
 const defaultAvatars = ['😎','🦅','👤','🔥','⚡','🐉','🐺','🐯','💥','👑'];
 
@@ -28,18 +29,18 @@ export default function ClanApplicationsTab({ applications, members, onRefresh }
 
   const handleDecide = async (appId: string, decision: 'approve' | 'reject') => {
     setBusy(appId);
-    try { await decideApplication(appId, decision); await onRefresh(); } catch (e: any) { alert(e.message || 'Ошибка'); }
+    try { await decideApplication(appId, decision); await onRefresh(); } catch (e: any) { toast.error(e.message || 'Ошибка'); }
     setBusy(null);
   };
 
   const handleReassign = async (appId: string, memberId: string) => {
-    try { await reassignOpponent(appId, memberId); setReassign(null); await onRefresh(); } catch (e: any) { alert(e.message || 'Ошибка'); }
+    try { await reassignOpponent(appId, memberId); setReassign(null); await onRefresh(); } catch (e: any) { toast.error(e.message || 'Ошибка'); }
   };
 
   const handleCancel = async (appId: string) => {
     if (!confirm('Отменить заявку? Взнос будет полностью возвращён кандидату.')) return;
     setBusy(appId);
-    try { await adminCancelApplication(appId); await onRefresh(); } catch (e: any) { alert(e.message || 'Ошибка'); }
+    try { await adminCancelApplication(appId); await onRefresh(); } catch (e: any) { toast.error(e.message || 'Ошибка'); }
     setBusy(null);
   };
 

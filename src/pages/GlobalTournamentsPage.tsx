@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { globalTournamentApi, type GTListItem, type GTDetail, type GTStatus, type GTGameMode, type GTFormat, type GTFormData } from '../lib/globalTournamentApi';
 import { i18nStr } from '../lib/i18n';
+import { toast } from '../lib/toast';
 
 const statusLabels: Record<GTStatus, { label: string; color: string }> = {
   DRAFT: { label: 'Черновик', color: 'bg-zinc-500/20 text-zinc-400' },
@@ -507,9 +508,9 @@ export default function GlobalTournamentsPage() {
                       setActionLoading('gen-teams');
                       try {
                         const res = await globalTournamentApi.generateTeams(detail.id);
-                        alert(`Создано ${res.totalTeams} команд${res.unassigned > 0 ? `, ${res.unassigned} игрок(ов) без команды` : ''}`);
+                        toast.error(`Создано ${res.totalTeams} команд${res.unassigned > 0 ? `, ${res.unassigned} игрок(ов) без команды` : ''}`);
                         refreshDetail();
-                      } catch (e: any) { alert(e.message || 'Ошибка'); }
+                      } catch (e: any) { toast.error(e.message || 'Ошибка'); }
                       setActionLoading('');
                     }}
                     disabled={actionLoading === 'gen-teams'}
@@ -551,9 +552,9 @@ export default function GlobalTournamentsPage() {
                       setActionLoading('gen-matches');
                       try {
                         const res = await globalTournamentApi.generateMatches(detail.id);
-                        alert(`Создано ${res.created} матчей`);
+                        toast.error(`Создано ${res.created} матчей`);
                         refreshDetail();
-                      } catch (e: any) { alert(e.message || 'Ошибка'); }
+                      } catch (e: any) { toast.error(e.message || 'Ошибка'); }
                       setActionLoading('');
                     }}
                     disabled={actionLoading === 'gen-matches' || detail.teams.length < 2}
@@ -596,7 +597,7 @@ export default function GlobalTournamentsPage() {
                               try {
                                 await globalTournamentApi.updateMatch(m.id, { scoreA: a, scoreB: b, winnerId, status: 'COMPLETED' });
                                 refreshDetail();
-                              } catch (e: any) { alert(e.message || 'Ошибка'); }
+                              } catch (e: any) { toast.error(e.message || 'Ошибка'); }
                             }}
                             className="text-xs text-blue-400/60 hover:text-blue-400 px-1"
                           >

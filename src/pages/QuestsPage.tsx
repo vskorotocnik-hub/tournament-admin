@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as questApi from '../lib/questApi';
 import type { Quest, QuestDetail, QuestProgressItem, CreateQuestData } from '../lib/questApi';
+import { toast } from '../lib/toast';
 
 const CONDITION_TYPES = [
   { value: 'PLAY_TOURNAMENT', label: '🎮 Сыграть в турнир (TDM 2v2/3v3/4v4)' },
@@ -68,7 +69,7 @@ export default function QuestsPage() {
       await questApi.duplicateQuest(q.id);
       await load();
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     }
   };
 
@@ -78,7 +79,7 @@ export default function QuestsPage() {
       await questApi.deleteQuest(q.id);
       await load();
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     }
   };
 
@@ -88,7 +89,7 @@ export default function QuestsPage() {
       await questApi.updateQuest(q.id, { status: next });
       await load();
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     }
   };
 
@@ -447,7 +448,7 @@ function QuestDetailModal({ quest, onClose, onChanged }: { quest: QuestDetail; o
       await questApi.approveProgress(p.id);
       onChanged();
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setActionLoading(null);
     }
@@ -459,7 +460,7 @@ function QuestDetailModal({ quest, onClose, onChanged }: { quest: QuestDetail; o
       await questApi.rejectProgress(p.id, rejectNote || undefined);
       onChanged();
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setActionLoading(null);
       setRejectNote('');

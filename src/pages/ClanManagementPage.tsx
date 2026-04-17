@@ -12,7 +12,7 @@ import { getClanAdminData } from '../lib/clanApi';
 import type { ClanAdminData } from '../lib/clanApi';
 
 type Tab = 'apps'|'members'|'disputes'|'dist'|'tower'|'fin'|'payouts'|'settings'|'audit';
-const tabs:[Tab,string,string][] = [['apps','📋','Заявки'],['members','👥','Участники'],['disputes','⚠️','Споры'],['dist','🏆','Распределение'],['tower','🗼','Башня'],['fin','💰','Финансы'],['payouts','�','Выплаты'],['settings','⚙️','Настройки'],['audit','📜','История']];
+const tabs:[Tab,string,string][] = [['apps','📋','Заявки'],['members','👥','Участники'],['disputes','⚠️','Споры'],['dist','🏆','Распределение'],['tower','🗼','Башня'],['fin','💰','Финансы'],['payouts','💸','Выплаты'],['settings','⚙️','Настройки'],['audit','📜','История']];
 
 export default function ClanManagementPage() {
   const [tab, setTab] = useState<Tab>('apps');

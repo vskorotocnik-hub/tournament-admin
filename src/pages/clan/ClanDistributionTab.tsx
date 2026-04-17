@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import type { ClanAdminSettings, ClanAdminApplication, ClanAdminDistribution, ClanAdminMember } from '../../lib/clanApi';
 import { updateDistributionTimer, startDistribution, finishDistribution } from '../../lib/clanApi';
+import { toast } from '../../lib/toast';
 
 interface Props {
   clan: ClanAdminSettings;
@@ -46,7 +47,7 @@ export default function ClanDistributionTab({ clan, members, applications, distr
   const handleSaveTimer = async () => {
     const v = timerRef.current?.value;
     if (!v) return;
-    try { await updateDistributionTimer(new Date(v).toISOString()); await onRefresh(); } catch (e: any) { alert(e.message); }
+    try { await updateDistributionTimer(new Date(v).toISOString()); await onRefresh(); } catch (e: any) { toast.error(e.message); }
   };
 
   const handleStart = async () => {
@@ -55,12 +56,12 @@ export default function ClanDistributionTab({ clan, members, applications, distr
       const d = await startDistribution();
       setDistId(d.id);
       await onRefresh();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { toast.error(e.message); }
     setBusy(false);
   };
 
   const handleFinish = async () => {
-    if (!distId) { alert('Нет активного распределения'); return; }
+    if (!distId) { toast.error('Нет активного распределения'); return; }
     // Only include participants with a valid assigned place (>= 1)
     const results: Array<{ userId: string; pubgId: string; wins: number; losses: number; place: number }> = [];
     for (const p of distParticipants) {
@@ -75,9 +76,9 @@ export default function ClanDistributionTab({ clan, members, applications, distr
         place: placeNum,
       });
     }
-    if (results.length === 0) { alert('Назначьте хотя бы одному участнику место (1–' + clan.maxMembers + ')'); return; }
+    if (results.length === 0) { toast.error('Назначьте хотя бы одному участнику место (1–' + clan.maxMembers + ')'); return; }
     setBusy(true);
-    try { await finishDistribution(distId, results); await onRefresh(); } catch (e: any) { alert(e.message); }
+    try { await finishDistribution(distId, results); await onRefresh(); } catch (e: any) { toast.error(e.message); }
     setBusy(false);
   };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as boostApi from '../lib/boostApi';
+import { toast } from '../lib/toast';
 
 type Tab = 'stats' | 'pending' | 'all_listings' | 'deals';
 
@@ -88,7 +89,7 @@ export default function BoostManagementPage() {
       await boostApi.approveListing(id);
       setListings(prev => prev.filter(l => l.id !== id));
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setActionLoading(false);
     }
@@ -103,7 +104,7 @@ export default function BoostManagementPage() {
       setRejectId(null);
       setRejectReason('');
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setActionLoading(false);
     }
@@ -116,7 +117,7 @@ export default function BoostManagementPage() {
       const msgs = await boostApi.getDealMessages(dealId);
       setChatMessages(msgs);
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setChatLoading(false);
     }
@@ -129,7 +130,7 @@ export default function BoostManagementPage() {
       setChatMessages(prev => [...prev, msg]);
       setChatInput('');
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     }
   }
 
@@ -142,7 +143,7 @@ export default function BoostManagementPage() {
       setResolveId(null);
       setResolveComment('');
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setActionLoading(false);
     }
@@ -155,7 +156,7 @@ export default function BoostManagementPage() {
       await boostApi.forceCancel(dealId, reason.trim());
       setDeals(prev => prev.map(d => d.id === dealId ? { ...d, status: 'CANCELLED_BY_SELLER' } : d));
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     }
   }
 
@@ -331,7 +332,7 @@ export default function BoostManagementPage() {
                             className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs rounded-lg">
                             ✂️ Разделить
                           </button>
-                          <button onClick={async () => { if (!confirm('Отклонить жалобу и вернуть в работу?')) return; try { await boostApi.dismissDispute(d.id); setDeals(prev => prev.map(x => x.id === d.id ? { ...x, status: 'IN_PROGRESS' } : x)); } catch (e: any) { alert(e.message); } }}
+                          <button onClick={async () => { if (!confirm('Отклонить жалобу и вернуть в работу?')) return; try { await boostApi.dismissDispute(d.id); setDeals(prev => prev.map(x => x.id === d.id ? { ...x, status: 'IN_PROGRESS' } : x)); } catch (e: any) { toast.error(e.message); } }}
                             className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs rounded-lg">
                             ❌ Отклонить
                           </button>
@@ -506,7 +507,7 @@ export default function BoostManagementPage() {
                   await boostApi.splitPayout(splitId, splitPct);
                   setDeals(prev => prev.map(d => d.id === splitId ? { ...d, status: 'RESOLVED' } : d));
                   setSplitId(null);
-                } catch (e: any) { alert(e.message); }
+                } catch (e: any) { toast.error(e.message); }
                 finally { setActionLoading(false); }
               }} disabled={actionLoading}
                 className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm disabled:opacity-50">

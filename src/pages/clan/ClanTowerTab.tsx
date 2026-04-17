@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import type { ClanAdminMember, ClanAdminCheckpoint } from '../../lib/clanApi';
 import { updateMemberFloor } from '../../lib/clanApi';
+import { toast } from '../../lib/toast';
 
 const defaultAvatars = ['😎','🦅','👤','🔥','⚡','�','🐺','🐯','💥','👑'];
 const fmtMoney = (n: number) => n >= 1000 ? `$${n.toLocaleString('ru-RU')}` : `$${n}`;
@@ -20,7 +21,7 @@ export default function ClanTowerTab({ members, checkpoints, onRefresh }: Props)
   const handleUpdateFloor = async () => {
     const f = Number(floorRef.current?.value);
     if (!selMember || !f) return;
-    try { await updateMemberFloor(selMember, f); await onRefresh(); } catch (e: any) { alert(e.message); }
+    try { await updateMemberFloor(selMember, f); await onRefresh(); } catch (e: any) { toast.error(e.message); }
   };
 
   return (

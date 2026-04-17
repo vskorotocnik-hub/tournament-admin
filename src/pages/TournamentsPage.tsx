@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { adminApi, type AdminTournamentItem, type AdminTournamentDetail } from '../lib/api';
+import { toast } from '../lib/toast';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   SEARCHING: { label: 'Поиск', color: 'bg-blue-500/20 text-blue-400' },
@@ -83,7 +84,7 @@ export default function TournamentsPage({ gameTypeFilter }: Props = {}) {
     const file = e.target.files?.[0];
     if (!file || !detail) return;
     if (!file.type.startsWith('image/')) return;
-    if (file.size > 5 * 1024 * 1024) { alert('Максимум 5 МБ'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Максимум 5 МБ'); return; }
     const reader = new FileReader();
     reader.onload = async () => {
       setSendingMessage(true);
@@ -208,7 +209,7 @@ export default function TournamentsPage({ gameTypeFilter }: Props = {}) {
                       await refreshDetail();
                       loadList();
                     } catch (e: any) {
-                      alert(e?.message || 'Ошибка');
+                      toast.error(e?.message || 'Ошибка');
                     }
                     setResolving(false);
                   }}
@@ -259,10 +260,10 @@ export default function TournamentsPage({ gameTypeFilter }: Props = {}) {
                   if (!confirm('Отменить турнир? Все ставки будут возвращены участникам.')) return;
                   try {
                     await adminApi.cancelTournament(detail.id);
-                    alert('Турнир отменён, ставки возвращены');
+                    toast.success('Турнир отменён, ставки возвращены');
                     await refreshDetail();
                     loadList();
-                  } catch (e: any) { alert(e?.message || 'Ошибка'); }
+                  } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
                 }}
                 className="w-full py-2.5 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold border border-red-500/30 hover:bg-red-500/30 transition-colors"
               >

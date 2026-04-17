@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { DisputedMatch, ClanMatchMessage } from '../../lib/clanApi';
 import { getDisputedMatches, getMatchMessages, sendAdminMatchMessage, resolveMatchDispute } from '../../lib/clanApi';
+import { toast } from '../../lib/toast';
 interface Props { onRefresh: () => Promise<void>; }
 export default function ClanDisputesTab({ onRefresh }: Props) {
   const [matches, setMatches] = useState<DisputedMatch[]>([]);
@@ -20,7 +21,7 @@ export default function ClanDisputesTab({ onRefresh }: Props) {
   useEffect(() => { endRef.current?.scrollIntoView({behavior:'smooth'}); }, [msgs.length]);
   const match = matches.find(m=>m.id===sel);
   const send = async () => { if(!sel||!msgIn.trim()||busy)return; setBusy(true); try{await sendAdminMatchMessage(sel,msgIn.trim());setMsgIn('');await getMatchMessages(sel).then(d=>setMsgs(d.messages));}catch{} setBusy(false); };
-  const resolve = async () => { if(!sel||busy||!winnerId||!sM||!sC||!res.trim()){alert('Заполните все поля');return;} setBusy(true); try{await resolveMatchDispute(sel,winnerId,+sM,+sC,res.trim());alert('Решено');setSel(null);await load();await onRefresh();}catch(e:any){alert(e.message||'Ошибка');} setBusy(false); };
+  const resolve = async () => { if(!sel||busy||!winnerId||!sM||!sC||!res.trim()){toast.error('Заполните все поля');return;} setBusy(true); try{await resolveMatchDispute(sel,winnerId,+sM,+sC,res.trim());toast.error('Решено');setSel(null);await load();await onRefresh();}catch(e:any){toast.error(e.message||'Ошибка');} setBusy(false); };
   if(loading) return <p className="text-zinc-500 text-sm py-8 text-center">Загрузка...</p>;
   if(!matches.length) return <div className="text-center py-12"><p className="text-3xl mb-2">✅</p><p className="text-zinc-400 text-sm">Нет споров</p></div>;
   return (<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

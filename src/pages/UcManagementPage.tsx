@@ -3,6 +3,7 @@ import * as ucApi from '../lib/ucApi';
 import type { UcProduct, CodeStats, PendingOrder, AdminOrder, UcStats, AdminWithdrawal, MarketplaceStats } from '../lib/ucApi';
 import * as siteTopupApi from '../lib/siteTopupApi';
 import type { TopupOrder } from '../lib/siteTopupApi';
+import { toast } from '../lib/toast';
 
 type Tab = 'pending' | 'products' | 'codes' | 'history' | 'withdrawals' | 'site_topup' | 'sellers';
 
@@ -145,7 +146,7 @@ function PendingOrdersTab() {
       await ucApi.completeOrder(id);
       load();
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setProcessing(null);
     }
@@ -159,7 +160,7 @@ function PendingOrdersTab() {
       await ucApi.failOrder(id, reason || undefined);
       load();
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setProcessing(null);
     }
@@ -263,8 +264,8 @@ function ImageUploader({ value, onChange }: { value: string | null; onChange: (u
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Только изображения'); return; }
-    if (file.size > 5 * 1024 * 1024) { alert('Макс. размер 5 МБ'); return; }
+    if (!file.type.startsWith('image/')) { toast.error('Только изображения'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Макс. размер 5 МБ'); return; }
 
     setUploading(true);
     try {
@@ -277,7 +278,7 @@ function ImageUploader({ value, onChange }: { value: string | null; onChange: (u
       const { url } = await ucApi.uploadImage(base64);
       onChange(url);
     } catch (err: any) {
-      alert(err.message || 'Ошибка загрузки');
+      toast.error(err.message || 'Ошибка загрузки');
     } finally {
       setUploading(false);
     }
@@ -348,7 +349,7 @@ function ProductsTab() {
   };
 
   const handleSave = async () => {
-    if (!form.ucAmount || !form.label || !form.price) { alert('Заполните все поля'); return; }
+    if (!form.ucAmount || !form.label || !form.price) { toast.error('Заполните все поля'); return; }
     setSaving(true);
     try {
       const data = {
@@ -370,7 +371,7 @@ function ProductsTab() {
       resetForm();
       load();
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
@@ -381,7 +382,7 @@ function ProductsTab() {
       await ucApi.updateProduct(p.id, { isActive: !p.isActive });
       load();
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -391,7 +392,7 @@ function ProductsTab() {
       await ucApi.deleteProduct(p.id);
       load();
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -501,17 +502,17 @@ function CodesTab() {
   useEffect(() => { load(); }, [load]);
 
   const handleAdd = async () => {
-    if (!selectedProduct) { alert('Выберите продукт'); return; }
+    if (!selectedProduct) { toast.error('Выберите продукт'); return; }
     const codes = codesText.split('\n').map(c => c.trim()).filter(c => c.length > 0);
-    if (codes.length === 0) { alert('Введите коды'); return; }
+    if (codes.length === 0) { toast.error('Введите коды'); return; }
     setAdding(true);
     try {
       const result = await ucApi.addCodes(selectedProduct, codes);
-      alert(`Добавлено ${result.added} из ${result.total} кодов`);
+      toast.success(`Добавлено ${result.added} из ${result.total} кодов`);
       setCodesText('');
       load();
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setAdding(false);
     }
@@ -752,7 +753,7 @@ function HistoryTab() {
                           <button
                             onClick={async () => {
                               if (!confirm('Вы активировали код на Midasbuy вручную? Подтвердить выполнение заказа?')) return;
-                              try { await ucApi.completeOrder(o.id); load(); } catch (err: any) { alert(err.message); }
+                              try { await ucApi.completeOrder(o.id); load(); } catch (err: any) { toast.error(err.message); }
                             }}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30 transition-all"
                           >
@@ -762,7 +763,7 @@ function HistoryTab() {
                             onClick={async () => {
                               if (!confirm('Вернуть заказ в очередь бота?')) return;
                               setRetrying(o.id);
-                              try { await ucApi.retryOrder(o.id); load(); } catch (err: any) { alert(err.message); } finally { setRetrying(null); }
+                              try { await ucApi.retryOrder(o.id); load(); } catch (err: any) { toast.error(err.message); } finally { setRetrying(null); }
                             }}
                             disabled={retrying === o.id}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30 transition-all"
@@ -773,7 +774,7 @@ function HistoryTab() {
                             onClick={async () => {
                               const reason = prompt('Причина отклонения (необязательно):');
                               if (reason === null) return;
-                              try { await ucApi.failOrder(o.id, reason || undefined); load(); } catch (err: any) { alert(err.message); }
+                              try { await ucApi.failOrder(o.id, reason || undefined); load(); } catch (err: any) { toast.error(err.message); }
                             }}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-all"
                           >
@@ -786,7 +787,7 @@ function HistoryTab() {
                           onClick={async () => {
                             if (!confirm('Вернуть заказ в очередь? Деньги снова заморозятся у пользователя.')) return;
                             setRetrying(o.id);
-                            try { await ucApi.retryOrder(o.id); load(); } catch (err: any) { alert(err.message); } finally { setRetrying(null); }
+                            try { await ucApi.retryOrder(o.id); load(); } catch (err: any) { toast.error(err.message); } finally { setRetrying(null); }
                           }}
                           disabled={retrying === o.id}
                           className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30 transition-all"
@@ -798,7 +799,7 @@ function HistoryTab() {
                         <button
                           onClick={async () => {
                             if (!confirm('Вернуть деньги пользователю? Это необратимо.')) return;
-                            try { await ucApi.refundOrder(o.id); load(); } catch (err: any) { alert(err.message); }
+                            try { await ucApi.refundOrder(o.id); load(); } catch (err: any) { toast.error(err.message); }
                           }}
                           className="px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30 transition-all"
                         >
@@ -895,7 +896,7 @@ function WithdrawalsTab() {
     try {
       await ucApi.adminRefundWithdrawal(id);
       load();
-    } catch (e: any) { alert(e.message || 'Ошибка'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка'); }
     setBusy(null);
   };
 
@@ -905,7 +906,7 @@ function WithdrawalsTab() {
     try {
       await ucApi.adminCompleteWithdrawal(id);
       load();
-    } catch (e: any) { alert(e.message || 'Ошибка'); }
+    } catch (e: any) { toast.error(e.message || 'Ошибка'); }
     setBusy(null);
   };
 

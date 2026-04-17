@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { classicApi, type ClassicTournamentItem, type ClassicTournamentDetail, type ClassicRegistrationItem } from '../lib/api';
 import ChatPanel from '../components/ChatPanel';
 import FormModal, { type FormData } from '../components/FormModal';
+import { toast } from '../lib/toast';
 
 const statusLabels: Record<string, { label: string; color: string }> = {
   REGISTRATION: { label: 'Регистрация', color: 'bg-blue-500/20 text-blue-400' },
@@ -110,14 +111,14 @@ export default function ClassicTournamentsPage() {
   const handleAction = async (action: string, _id: string, confirmMsg: string, apiFn: () => Promise<unknown>) => {
     if (!confirm(confirmMsg)) return;
     setActionLoading(action);
-    try { await apiFn(); await refreshDetail(); loadList(); } catch (e: any) { alert(e?.message || 'Ошибка'); }
+    try { await apiFn(); await refreshDetail(); loadList(); } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
     setActionLoading('');
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Удалить турнир безвозвратно?')) return;
     setActionLoading('delete');
-    try { await classicApi.remove(id); setDetail(null); loadList(); } catch (e: any) { alert(e?.message || 'Ошибка'); }
+    try { await classicApi.remove(id); setDetail(null); loadList(); } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
     setActionLoading('');
   };
 
@@ -131,7 +132,7 @@ export default function ClassicTournamentsPage() {
   const handleComplete = async () => {
     if (!detail || winners.length === 0) return;
     setActionLoading('complete');
-    try { await classicApi.complete(detail.id, winners); setShowComplete(false); await refreshDetail(); loadList(); } catch (e: any) { alert(e?.message || 'Ошибка'); }
+    try { await classicApi.complete(detail.id, winners); setShowComplete(false); await refreshDetail(); loadList(); } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
     setActionLoading('');
   };
 
@@ -211,7 +212,7 @@ export default function ClassicTournamentsPage() {
               <div className="bg-yellow-500/5 rounded-lg border border-yellow-500/20 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-yellow-400">📋 PUBG ID участников</h3>
-                  <button onClick={() => { navigator.clipboard.writeText(detail.registrations.flatMap(r => r.pubgIds).join('\n')); alert('Скопировано!'); }}
+                  <button onClick={() => { navigator.clipboard.writeText(detail.registrations.flatMap(r => r.pubgIds).join('\n')); toast.error('Скопировано!'); }}
                     className="px-3 py-1 rounded-lg bg-yellow-600/20 text-yellow-400 text-xs hover:bg-yellow-600/30">Копировать все</button>
                 </div>
                 <div className="space-y-2">
@@ -225,7 +226,7 @@ export default function ClassicTournamentsPage() {
                           <button
                             onClick={async () => {
                               if (!confirm(`Удалить регистрацию ${r.user.username}? Взнос будет возвращён.`)) return;
-                              try { await classicApi.removeRegistration(r.id); await refreshDetail(); loadList(); } catch (e: any) { alert(e?.message || 'Ошибка'); }
+                              try { await classicApi.removeRegistration(r.id); await refreshDetail(); loadList(); } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
                             }}
                             className="ml-auto px-2 py-0.5 rounded text-[10px] font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30 transition-all"
                           >✕ Удалить</button>
@@ -257,7 +258,7 @@ export default function ClassicTournamentsPage() {
                 <button onClick={async () => {
                   if (!broadcastText.trim()) return;
                   setBroadcastSending(true);
-                  try { const r = await classicApi.broadcast(detail.id, broadcastText.trim()); alert(`Отправлено ${r.sent} участникам`); setBroadcastText(''); } catch (e: any) { alert(e?.message || 'Ошибка'); }
+                  try { const r = await classicApi.broadcast(detail.id, broadcastText.trim()); toast.success(`Отправлено ${r.sent} участникам`); setBroadcastText(''); } catch (e: any) { toast.error(e?.message || 'Ошибка'); }
                   setBroadcastSending(false);
                 }} disabled={broadcastSending || !broadcastText.trim()}
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50">
