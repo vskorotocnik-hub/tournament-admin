@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from '../lib/toast';
 
 const serverOptions = [
   { value: 'EUROPE', label: 'Европа' },
@@ -32,7 +33,7 @@ export default function FormModal({ form, setForm, editingId, saving, formError,
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
-    if (file.size > 5 * 1024 * 1024) { alert('Максимум 5 МБ'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Максимум 5 МБ'); return; }
     const reader = new FileReader();
     reader.onload = () => {
       const base64 = reader.result as string;
