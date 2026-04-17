@@ -25,7 +25,7 @@ import AuditLogPage from './pages/AuditLogPage';
 import SecurityPage from './pages/SecurityPage';
 
 function ProtectedRoutes() {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isStaff, loading } = useAuth();
 
   if (loading) {
     return (
@@ -45,17 +45,8 @@ function ProtectedRoutes() {
     return <LoginPage />;
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
-        <div className="text-center space-y-4">
-          <p className="text-5xl">🚫</p>
-          <h1 className="text-xl font-bold text-white">Доступ запрещён</h1>
-          <p className="text-zinc-500 text-sm">У вашего аккаунта нет прав администратора</p>
-          <p className="text-zinc-600 text-xs">Роль: {useAuth().user?.role || 'неизвестно'}</p>
-        </div>
-      </div>
-    );
+  if (!isStaff) {
+    return <AccessDeniedScreen />;
   }
 
   return (
@@ -84,6 +75,20 @@ function ProtectedRoutes() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  );
+}
+
+function AccessDeniedScreen() {
+  const { user } = useAuth();
+  return (
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
+      <div className="text-center space-y-4">
+        <p className="text-5xl">🚫</p>
+        <h1 className="text-xl font-bold text-white">Доступ запрещён</h1>
+        <p className="text-zinc-500 text-sm">У вашего аккаунта нет прав персонала</p>
+        <p className="text-zinc-600 text-xs">Роль: {user?.role || 'неизвестно'}</p>
+      </div>
+    </div>
   );
 }
 

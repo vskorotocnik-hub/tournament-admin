@@ -14,7 +14,17 @@ interface LoginResult {
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  /** User has ANY staff role (ADMIN or MODERATOR) — allowed into the panel. */
+  isStaff: boolean;
+  /** User is a full ADMIN — allowed to mutate ledger / config / roles. */
   isAdmin: boolean;
+  /**
+   * MODERATOR role — granted read-only + moderation actions (ban, resolve).
+   * Exposed as a dedicated flag so UI can swap affordances (hide balance
+   * buttons, show an amber ribbon, etc.) rather than sniffing `user.role`
+   * in every page.
+   */
+  isModerator: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   verify2fa: (pending2faToken: string, code: string) => Promise<void>;
@@ -90,9 +100,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'ADMIN';
+  const isModerator = user?.role === 'MODERATOR';
+  const isStaff = isAdmin || isModerator;
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isAdmin, loading, login, verify2fa, logout, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        isStaff,
+        isAdmin,
+        isModerator,
+        loading,
+        login,
+        verify2fa,
+        logout,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

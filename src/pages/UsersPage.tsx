@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { adminApi, securityApi } from '../lib/api';
 import type { AdminUserItem, UserRestriction, RestrictionType } from '../lib/api';
 import { toast } from '../lib/toast';
+import { useAuth } from '../context/AuthContext';
 
 const RESTRICTION_LABELS: Record<RestrictionType, string> = {
   MARKETPLACE: '🛒 Маркетплейс аккаунтов',
@@ -19,6 +20,11 @@ const RESTRICTION_LABELS: Record<RestrictionType, string> = {
 const ALL_RESTRICTION_TYPES = Object.keys(RESTRICTION_LABELS) as RestrictionType[];
 
 export default function UsersPage() {
+  // Role gating: MODERATOR can view everything + moderate (ban, restrict)
+  // but may not touch balances or role promotions. Those mutations are also
+  // blocked on the server by the adminOnly middleware — hiding the buttons
+  // here keeps the UI honest.
+  const { isAdmin } = useAuth();
   const [users, setUsers] = useState<AdminUserItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -294,7 +300,9 @@ export default function UsersPage() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => setSelectedUser(user)} className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-lg text-xs transition-all">Профиль</button>
-                      <button onClick={() => { setSelectedUser(user); setShowBalanceModal(true); }} className="px-2 py-1 bg-zinc-800 hover:bg-emerald-500/20 text-zinc-400 hover:text-emerald-400 rounded-lg text-xs transition-all">$</button>
+                      {isAdmin && (
+                        <button onClick={() => { setSelectedUser(user); setShowBalanceModal(true); }} className="px-2 py-1 bg-zinc-800 hover:bg-emerald-500/20 text-zinc-400 hover:text-emerald-400 rounded-lg text-xs transition-all">$</button>
+                      )}
                       <button onClick={() => handleBanClick(user)} disabled={actionLoading || user.role === 'ADMIN'} className="px-2 py-1 bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 rounded-lg text-xs transition-all disabled:opacity-30">
                         {user.isBanned ? '🔓' : '🔒'}
                       </button>
@@ -386,13 +394,19 @@ export default function UsersPage() {
               )}
 
               <div className="flex gap-2 flex-wrap">
-                <button onClick={() => setShowBalanceModal(true)} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-xl transition-colors">Баланс $</button>
-                <button onClick={() => setShowUcModal(true)} className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium rounded-xl transition-colors">UC Баланс</button>
+                {isAdmin && (
+                  <button onClick={() => setShowBalanceModal(true)} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-xl transition-colors">Баланс $</button>
+                )}
+                {isAdmin && (
+                  <button onClick={() => setShowUcModal(true)} className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium rounded-xl transition-colors">UC Баланс</button>
+                )}
                 <button onClick={() => {
                   setShowTxModal(true); setTxLoading(true);
                   adminApi.getUserTransactions(selectedUser.id).then(r => setTxData({ transactions: r.transactions, total: r.total, ucBalance: r.user.ucBalance })).catch(() => {}).finally(() => setTxLoading(false));
                 }} className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-xl transition-colors">💰 История</button>
-                <button onClick={() => setShowRoleModal(true)} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors">Роль</button>
+                {isAdmin && (
+                  <button onClick={() => setShowRoleModal(true)} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors">Роль</button>
+                )}
                 <button onClick={() => {
                   setShowRestrictModal(true); setRestrictLoading(true);
                   securityApi.getRestrictions(selectedUser.id).then(setRestrictions).catch(() => {}).finally(() => setRestrictLoading(false));
