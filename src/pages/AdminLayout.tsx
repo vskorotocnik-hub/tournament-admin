@@ -28,6 +28,7 @@ const navItems: NavItem[] = [
   { path: '/ip-monitor', label: 'IP Monitor', icon: '🔍', cap: 'ip_monitor.view' },
   { path: '/finances', label: 'Финансы', icon: '💰', cap: 'finances.view' },
   { path: '/support', label: 'Поддержка', icon: '💬', cap: 'support.view' },
+  { path: '/moderation', label: 'Модерация чатов', icon: '🚨', cap: 'moderation.view' },
   { path: '/banners', label: 'Банеры', icon: '🖼️', cap: 'banners.view' },
   { path: '/push', label: 'Push-уведомления', icon: '🔔', cap: 'push.send' },
   { path: '/audit', label: 'Аудит', icon: '📜', cap: 'audit.view' },

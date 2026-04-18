@@ -25,6 +25,7 @@ import PushPage from './pages/PushPage';
 import GlobalTournamentsPage from './pages/GlobalTournamentsPage';
 import AuditLogPage from './pages/AuditLogPage';
 import SecurityPage from './pages/SecurityPage';
+import ModerationPage from './pages/ModerationPage';
 
 function ProtectedRoutes() {
   const { isAuthenticated, isStaff, loading } = useAuth();
@@ -64,6 +65,7 @@ function ProtectedRoutes() {
         <Route path="clan" element={<ClanManagementPage />} />
         <Route path="finances" element={<WithdrawalsPage />} />
         <Route path="support" element={<SupportPage />} />
+        <Route path="moderation" element={<ModerationPage />} />
         <Route path="referral" element={<ReferralStatsPage />} />
         <Route path="quests" element={<QuestsPage />} />
         <Route path="ip-monitor" element={<IpMonitorPage />} />
