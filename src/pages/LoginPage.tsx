@@ -2,11 +2,34 @@ import { useState, type FormEvent } from 'react';
 import { useAuth, type TwoFactorChallenge } from '../context/AuthContext';
 import { ApiError } from '../lib/api';
 
+/**
+ * IP-based login blocks come back from the backend as ApiError with
+ * `code === 'IP_NOT_APPROVED'` and a payload carrying `{ status, ip,
+ * message }`. We render a dedicated banner for them instead of the
+ * generic red error so the user knows to contact the owner.
+ */
+interface IpBlock {
+  ip: string;
+  status: 'PENDING' | 'REJECTED';
+  message: string;
+}
+
+function extractIpBlock(err: unknown): IpBlock | null {
+  if (!(err instanceof ApiError) || err.code !== 'IP_NOT_APPROVED') return null;
+  const p = err.payload || {};
+  return {
+    ip: String(p.ip || 'unknown'),
+    status: (p.status === 'REJECTED' ? 'REJECTED' : 'PENDING'),
+    message: String(p.message || err.message),
+  };
+}
+
 export default function AdminLoginPage() {
   const { login, verify2fa } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [ipBlock, setIpBlock] = useState<IpBlock | null>(null);
   const [loading, setLoading] = useState(false);
 
   // 2FA second step
@@ -16,6 +39,7 @@ export default function AdminLoginPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setIpBlock(null);
     setLoading(true);
     try {
       const result = await login(email, password);
@@ -23,7 +47,9 @@ export default function AdminLoginPage() {
         setChallenge(result.challenge);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Ошибка подключения к серверу');
+      const ip = extractIpBlock(err);
+      if (ip) { setIpBlock(ip); setChallenge(null); }
+      else setError(err instanceof ApiError ? err.message : 'Ошибка подключения к серверу');
     } finally {
       setLoading(false);
     }
@@ -33,11 +59,14 @@ export default function AdminLoginPage() {
     e.preventDefault();
     if (!challenge) return;
     setError('');
+    setIpBlock(null);
     setLoading(true);
     try {
       await verify2fa(challenge.pending2faToken, otpCode.trim());
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Ошибка подключения к серверу');
+      const ip = extractIpBlock(err);
+      if (ip) { setIpBlock(ip); setChallenge(null); }
+      else setError(err instanceof ApiError ? err.message : 'Ошибка подключения к серверу');
     } finally {
       setLoading(false);
     }
@@ -102,7 +131,22 @@ export default function AdminLoginPage() {
           </form>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
+            {ipBlock && (
+              <div className={`rounded-xl border px-4 py-3 text-sm space-y-1.5 ${
+                ipBlock.status === 'PENDING'
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                  : 'bg-red-500/10 border-red-500/30 text-red-200'
+              }`}>
+                <div className="font-semibold">
+                  {ipBlock.status === 'PENDING' ? '⏳ Ждёт одобрения' : '🚫 IP заблокирован'}
+                </div>
+                <div className="text-xs opacity-90">{ipBlock.message}</div>
+                <div className="text-xs opacity-70">
+                  Ваш IP: <code className="font-mono">{ipBlock.ip}</code>
+                </div>
+              </div>
+            )}
+            {error && !ipBlock && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
                 {error}
               </div>

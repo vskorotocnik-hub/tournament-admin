@@ -81,10 +81,20 @@ async function refreshAccessToken(): Promise<AuthTokens | null> {
 export class ApiError extends Error {
   status: number;
   details?: Record<string, string[]>;
-  constructor(status: number, message: string, details?: Record<string, string[]>) {
+  /**
+   * Raw parsed body from the error response. Used by callers who need to
+   * peek at non-standard fields (e.g. IP whitelist returns `status`, `ip`,
+   * `message` alongside `error: 'IP_NOT_APPROVED'`).
+   */
+  payload?: Record<string, any>;
+  /** Server-side error code if present in `error` field (e.g. IP_NOT_APPROVED). */
+  code?: string;
+  constructor(status: number, message: string, details?: Record<string, string[]>, payload?: Record<string, any>) {
     super(message);
     this.status = status;
     this.details = details;
+    this.payload = payload;
+    this.code = typeof payload?.error === 'string' ? payload.error : undefined;
     this.name = 'ApiError';
   }
 }
@@ -135,7 +145,7 @@ export async function apiFetch<T = unknown>(
         .join('\n');
       if (fieldErrors) msg = `${msg}\n${fieldErrors}`;
     }
-    throw new ApiError(res.status, msg, error.details);
+    throw new ApiError(res.status, msg, error.details, error);
   }
 
   const json = await res.json();
@@ -156,6 +166,8 @@ export interface AuthUser {
   createdAt: string;
   /** Fine-grained permissions (see server/src/domains/rbac/capabilities.ts). */
   capabilities?: string[];
+  /** True for the single OWNER defined by OWNER_USER_ID env on the server. */
+  isOwner?: boolean;
 }
 
 export interface AuthResponse {
@@ -354,6 +366,25 @@ export interface StaffMember {
   };
 }
 
+export interface AdminIpEntry {
+  id: string;
+  userId: string;
+  ip: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  label: string | null;
+  userAgent: string | null;
+  geoCountry: string | null;
+  geoCity: string | null;
+  approvedById: string | null;
+  requestedAt: string;
+  decidedAt: string | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  attempts: number;
+  user?: { id: string; username: string; email: string | null; role: string; avatar: string | null };
+  approvedBy?: { id: string; username: string } | null;
+}
+
 export const adminApi = {
   stats: () =>
     apiFetch<AdminStatsResponse>('/api/admin/stats'),
@@ -439,6 +470,24 @@ export const adminApi = {
     apiFetch<{ ok: boolean; capabilities: string[] }>(`/api/admin/staff/${id}/capabilities`, { method: 'PUT', body: { capabilities } }),
   revokeStaffSessions: (id: string) =>
     apiFetch<{ ok: boolean; revoked: number }>(`/api/admin/staff/${id}/revoke-sessions`, { method: 'POST' }),
+
+  // IP whitelist (owner-only mutations, staff.view for list)
+  listIpEntries: (status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL') =>
+    apiFetch<{ entries: AdminIpEntry[]; ownerId: string | null }>(
+      `/api/admin/ip-whitelist${status ? `?status=${status}` : ''}`,
+    ),
+  myIp: () => apiFetch<{ ip: string; entry: AdminIpEntry | null }>('/api/admin/ip-whitelist/my-ip'),
+  approveIp: (id: string, label?: string) =>
+    apiFetch<{ entry: AdminIpEntry }>(`/api/admin/ip-whitelist/${id}/approve`, {
+      method: 'POST',
+      body: label ? { label } : {},
+    }),
+  rejectIp: (id: string) =>
+    apiFetch<{ entry: AdminIpEntry }>(`/api/admin/ip-whitelist/${id}/reject`, { method: 'POST' }),
+  deleteIp: (id: string) =>
+    apiFetch<{ ok: boolean }>(`/api/admin/ip-whitelist/${id}`, { method: 'DELETE' }),
+  preapproveIp: (data: { userId: string; ip: string; label?: string }) =>
+    apiFetch<{ entry: AdminIpEntry }>('/api/admin/ip-whitelist', { method: 'POST', body: data }),
 
   // Audit log
   auditLog: (params?: Record<string, string | number | undefined>) => {

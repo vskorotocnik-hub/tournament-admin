@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authApi, type TwoFaStatus } from '../lib/api';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 /**
  * Sidebar navigation. Each item declares the capability required to SEE
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { path: '/audit', label: 'Аудит', icon: '📜', cap: 'audit.view' },
   { path: '/security', label: 'Безопасность', icon: '🔐', cap: 'security.view' },
   { path: '/staff', label: 'Персонал', icon: '👮', cap: 'staff.view' },
+  { path: '/ip-whitelist', label: 'IP-доступ', icon: '🛡️', cap: 'staff.view' },
   { path: '/settings', label: 'Настройки', icon: '⚙️', cap: 'settings.view' },
 ];
 
@@ -158,7 +160,11 @@ export default function AdminLayout() {
 
         {/* Контент страницы */}
         <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
-          <Outlet />
+          {/* Per-page error boundary — re-keyed by pathname so the fallback
+              resets when you navigate away instead of staying "broken". */}
+          <ErrorBoundary key={location.pathname} label={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

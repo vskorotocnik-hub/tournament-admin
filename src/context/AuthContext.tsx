@@ -31,6 +31,12 @@ interface AuthContextType {
    * present in `user.capabilities`. Non-staff always returns false.
    */
   hasCapability: (cap: string) => boolean;
+  /**
+   * OWNER flag — single super-user defined by the OWNER_USER_ID env var on
+   * the server. Only the owner can manage the IP whitelist (approve new
+   * staff IPs, revoke access). ADMINs are NOT automatically owners.
+   */
+  isOwner: boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   verify2fa: (pending2faToken: string, code: string) => Promise<void>;
@@ -108,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = user?.role === 'ADMIN';
   const isModerator = user?.role === 'MODERATOR';
   const isStaff = isAdmin || isModerator;
+  const isOwner = !!user?.isOwner;
 
   const hasCapability = useCallback((cap: string) => {
     if (!user) return false;
@@ -124,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isStaff,
         isAdmin,
         isModerator,
+        isOwner,
         hasCapability,
         loading,
         login,

@@ -14,6 +14,7 @@ import AccountManagementPage from './pages/AccountManagementPage';
 import BoostManagementPage from './pages/BoostManagementPage';
 import SettingsPage from './pages/SettingsPage';
 import StaffPage from './pages/StaffPage';
+import IpWhitelistPage from './pages/IpWhitelistPage';
 import UcManagementPage from './pages/UcManagementPage';
 import ReferralStatsPage from './pages/ReferralStatsPage';
 import QuestsPage from './pages/QuestsPage';
@@ -72,6 +73,7 @@ function ProtectedRoutes() {
         <Route path="global-tournaments" element={<GlobalTournamentsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="staff" element={<StaffPage />} />
+        <Route path="ip-whitelist" element={<IpWhitelistPage />} />
         <Route path="audit" element={<AuditLogPage />} />
         <Route path="security" element={<SecurityPage />} />
       </Route>
