@@ -4,37 +4,35 @@ import { useAuth } from '../context/AuthContext';
 import { authApi, type TwoFaStatus } from '../lib/api';
 
 /**
- * Sidebar navigation. Each item declares whether it's restricted to ADMINs
- * or open to any staff member (ADMIN + MODERATOR).
- *
- * `adminOnly` items mirror the server-side `adminOnly` gate on
- * `/api/admin/*` routes: tournaments, clan, banners, global-tournaments,
- * settings — everything that can move money, push marketing content or
- * escalate privileges. Moderators see ban/resolve surfaces only.
+ * Sidebar navigation. Each item declares the capability required to SEE
+ * the link (ADMIN is a wildcard, so admins always see everything). If a
+ * moderator lacks the capability the link is hidden AND the route's
+ * endpoints 403 — the sidebar filter is just UX, not a security gate.
  */
-type NavItem = { path: string; label: string; icon: string; end?: boolean; adminOnly?: boolean };
+type NavItem = { path: string; label: string; icon: string; end?: boolean; cap?: string };
 
 const navItems: NavItem[] = [
-  { path: '/', label: 'Дашборд', icon: '📊', end: true },
-  { path: '/users', label: 'Пользователи', icon: '👥' },
-  { path: '/listings', label: 'Аренда', icon: '🔑' },
-  { path: '/accounts', label: 'Аккаунты', icon: '🛒' },
-  { path: '/boost', label: 'Буст/Напарники', icon: '🚀' },
-  { path: '/uc', label: 'Игровая валюта', icon: '💎' },
-  { path: '/tournaments', label: 'Турниры', icon: '🏆', adminOnly: true },
-  { path: '/global-tournaments', label: 'Глобальные турниры', icon: '🌍', adminOnly: true },
-  { path: '/clan', label: 'Клан', icon: '🏰', adminOnly: true },
-  { path: '/referral', label: 'Рефералы', icon: '🤝' },
-  { path: '/quests', label: 'Задания', icon: '📋' },
-  { path: '/lessons', label: 'Обучение', icon: '📚' },
-  { path: '/ip-monitor', label: 'IP Monitor', icon: '🔍' },
-  { path: '/finances', label: 'Финансы', icon: '💰', adminOnly: true },
-  { path: '/support', label: 'Поддержка', icon: '💬' },
-  { path: '/banners', label: 'Банеры', icon: '🖼️', adminOnly: true },
-  { path: '/push', label: 'Push-уведомления', icon: '🔔', adminOnly: true },
-  { path: '/audit', label: 'Аудит', icon: '📜' },
-  { path: '/security', label: 'Безопасность', icon: '🔐' },
-  { path: '/settings', label: 'Настройки', icon: '⚙️', adminOnly: true },
+  { path: '/', label: 'Дашборд', icon: '📊', end: true, cap: 'dashboard.view' },
+  { path: '/users', label: 'Пользователи', icon: '👥', cap: 'users.view' },
+  { path: '/listings', label: 'Аренда', icon: '🔑', cap: 'rental.view' },
+  { path: '/accounts', label: 'Аккаунты', icon: '🛒', cap: 'listings.view' },
+  { path: '/boost', label: 'Буст/Напарники', icon: '🚀', cap: 'boost.view' },
+  { path: '/uc', label: 'Игровая валюта', icon: '💎', cap: 'listings.view' },
+  { path: '/tournaments', label: 'Турниры', icon: '🏆', cap: 'tournaments.view' },
+  { path: '/global-tournaments', label: 'Глобальные турниры', icon: '🌍', cap: 'tournaments.global' },
+  { path: '/clan', label: 'Клан', icon: '🏰', cap: 'clan.view' },
+  { path: '/referral', label: 'Рефералы', icon: '🤝', cap: 'referrals.view' },
+  { path: '/quests', label: 'Задания', icon: '📋', cap: 'quests.view' },
+  { path: '/lessons', label: 'Обучение', icon: '📚', cap: 'lessons.view' },
+  { path: '/ip-monitor', label: 'IP Monitor', icon: '🔍', cap: 'ip_monitor.view' },
+  { path: '/finances', label: 'Финансы', icon: '💰', cap: 'finances.view' },
+  { path: '/support', label: 'Поддержка', icon: '💬', cap: 'support.view' },
+  { path: '/banners', label: 'Банеры', icon: '🖼️', cap: 'banners.view' },
+  { path: '/push', label: 'Push-уведомления', icon: '🔔', cap: 'push.send' },
+  { path: '/audit', label: 'Аудит', icon: '📜', cap: 'audit.view' },
+  { path: '/security', label: 'Безопасность', icon: '🔐', cap: 'security.view' },
+  { path: '/staff', label: 'Персонал', icon: '👮', cap: 'staff.view' },
+  { path: '/settings', label: 'Настройки', icon: '⚙️', cap: 'settings.view' },
 ];
 
 // Build-time constants injected by vite (see vite.config.ts)
@@ -45,13 +43,14 @@ const APP_BUILD_TIME = typeof __APP_BUILD_TIME__ !== 'undefined' ? __APP_BUILD_T
 export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAdmin, isModerator, logout } = useAuth();
+  const { user, isModerator, hasCapability, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Moderator sees a subset of the menu — admin-only items are both hidden
-  // from the sidebar and blocked by the server. Hiding them in the UI avoids
-  // confusing 403s when a moderator clicks a link they can't use.
-  const visibleNavItems = navItems.filter(item => isAdmin || !item.adminOnly);
+  // Filter the sidebar by capabilities. Admins are wildcard (hasCapability
+  // returns true for everything) so they see every link. Moderators only
+  // see links whose capability they hold. Items without a cap are always
+  // visible (there shouldn't be any now, but keep it forward-compatible).
+  const visibleNavItems = navItems.filter(item => !item.cap || hasCapability(item.cap));
 
   // 2FA gating: privileged roles must enable 2FA before they can use anything.
   const [twoFa, setTwoFa] = useState<TwoFaStatus | null>(null);

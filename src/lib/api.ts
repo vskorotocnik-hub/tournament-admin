@@ -154,6 +154,8 @@ export interface AuthUser {
   role: string;
   isVerified: boolean;
   createdAt: string;
+  /** Fine-grained permissions (see server/src/domains/rbac/capabilities.ts). */
+  capabilities?: string[];
 }
 
 export interface AuthResponse {
@@ -332,6 +334,26 @@ export interface FeatureFlagsConfig {
   modules: Record<FeatureModuleKey, boolean>;
 }
 
+export interface StaffMember {
+  id: string;
+  username: string;
+  email: string | null;
+  avatar: string | null;
+  role: 'ADMIN' | 'MODERATOR';
+  createdAt: string;
+  lastLoginAt: string | null;
+  twoFactorEnabled: boolean;
+  isBanned: boolean;
+  capabilities: string[];
+  capabilitiesCount: number;
+  activity: {
+    last24h: number;
+    last7d: number;
+    last30d: number;
+    lastActionAt: string | null;
+  };
+}
+
 export const adminApi = {
   stats: () =>
     apiFetch<AdminStatsResponse>('/api/admin/stats'),
@@ -407,6 +429,16 @@ export const adminApi = {
 
   invalidateConfigCache: () =>
     apiFetch<{ ok: boolean }>('/api/admin/config/invalidate-cache', { method: 'POST' }),
+
+  // Staff management — ADMIN/MODERATOR roster + capability management.
+  listStaff: () =>
+    apiFetch<{ staff: StaffMember[]; total: number }>('/api/admin/staff'),
+  listCapabilities: () =>
+    apiFetch<{ all: string[]; defaults: string[] }>('/api/admin/staff/capabilities'),
+  updateStaffCapabilities: (id: string, capabilities: string[]) =>
+    apiFetch<{ ok: boolean; capabilities: string[] }>(`/api/admin/staff/${id}/capabilities`, { method: 'PUT', body: { capabilities } }),
+  revokeStaffSessions: (id: string) =>
+    apiFetch<{ ok: boolean; revoked: number }>(`/api/admin/staff/${id}/revoke-sessions`, { method: 'POST' }),
 
   // Audit log
   auditLog: (params?: Record<string, string | number | undefined>) => {

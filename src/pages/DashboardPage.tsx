@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { adminApi } from '../lib/api';
 import type { AdminStatsResponse, FinanceStatsResponse } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 const REASON_LABELS: Record<string, string> = {
   rental_payout: 'Аренда: выплата',
@@ -37,6 +38,14 @@ function Skeleton({ className = '' }: { className?: string }) {
 type Tab = 'overview' | 'rentals' | 'tournaments' | 'transactions';
 
 export default function DashboardPage() {
+  const { hasCapability } = useAuth();
+  // Moderators without `finances.revenue` see all the operational metrics
+  // (counts of users, transactions, active escrow) but every concrete amount
+  // is masked with bullets. Prevents low-trust staff from learning revenue
+  // figures while still letting them do their job (audit, support, moderation).
+  const canSeeMoney = hasCapability('finances.revenue');
+  const mask = (s: string): string => canSeeMoney ? s : '•••';
+
   const [stats, setStats] = useState<AdminStatsResponse | null>(null);
   const [finance, setFinance] = useState<FinanceStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +74,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {!canSeeMoney && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-amber-300 text-xs">
+          🔒 <strong>Суммы скрыты.</strong> Право <code className="font-mono">finances.revenue</code> не выдано — вы видите количество транзакций и активность, но не конкретные цифры.
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
@@ -103,10 +117,10 @@ export default function DashboardPage() {
               {/* Top metrics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { icon: '💵', label: 'Доход платформы (USD)', value: fmt(finance.platform.totalUSD), color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-                  { icon: '🎮', label: 'Доход платформы (UC)', value: fmt(finance.platform.totalUC, 'UC'), color: 'text-blue-400', bg: 'bg-blue-500/10' },
-                  { icon: '👤', label: 'Заработок юзеров (USD)', value: fmt(finance.userEarnings.totalUSD), color: 'text-amber-400', bg: 'bg-amber-500/10' },
-                  { icon: '🏆', label: 'Заработок юзеров (UC)', value: fmt(finance.userEarnings.totalUC, 'UC'), color: 'text-purple-400', bg: 'bg-purple-500/10' },
+                  { icon: '💵', label: 'Доход платформы (USD)', value: mask(fmt(finance.platform.totalUSD)), color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+                  { icon: '🎮', label: 'Доход платформы (UC)', value: mask(fmt(finance.platform.totalUC, 'UC')), color: 'text-blue-400', bg: 'bg-blue-500/10' },
+                  { icon: '👤', label: 'Заработок юзеров (USD)', value: mask(fmt(finance.userEarnings.totalUSD)), color: 'text-amber-400', bg: 'bg-amber-500/10' },
+                  { icon: '🏆', label: 'Заработок юзеров (UC)', value: mask(fmt(finance.userEarnings.totalUC, 'UC')), color: 'text-purple-400', bg: 'bg-purple-500/10' },
                 ].map(m => (
                   <div key={m.label} className={`${m.bg} border border-zinc-800 rounded-xl p-4`}>
                     <div className="flex items-center gap-2 mb-2">
@@ -124,9 +138,9 @@ export default function DashboardPage() {
                   { icon: '👥', label: 'Пользователи', value: stats?.totalUsers ?? 0, sub: `+${stats?.usersThisWeek ?? 0} за нед.` },
                   { icon: '🟢', label: 'Активные (7д)', value: stats?.activeLastWeek ?? 0 },
                   { icon: '📊', label: 'Транзакций', value: finance.volume.totalTransactions.toLocaleString('ru-RU') },
-                  { icon: '🔒', label: 'Эскроу', value: `$${finance.volume.escrowHeld.toFixed(2)}`, sub: `${finance.volume.escrowCount} шт.` },
-                  { icon: '📤', label: 'Выводы (ожид.)', value: finance.withdrawals.pending, sub: `всего: ${finance.withdrawals.totalAmount.toLocaleString()} UC` },
-                  { icon: '💰', label: 'Общий баланс', value: `$${(stats?.totalBalance ?? 0).toFixed(2)}` },
+                  { icon: '🔒', label: 'Эскроу', value: mask(`$${finance.volume.escrowHeld.toFixed(2)}`), sub: `${finance.volume.escrowCount} шт.` },
+                  { icon: '📤', label: 'Выводы (ожид.)', value: finance.withdrawals.pending, sub: mask(`всего: ${finance.withdrawals.totalAmount.toLocaleString()} UC`) },
+                  { icon: '💰', label: 'Общий баланс', value: mask(`$${(stats?.totalBalance ?? 0).toFixed(2)}`) },
                 ].map(m => (
                   <div key={m.label} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
@@ -159,7 +173,7 @@ export default function DashboardPage() {
                         <div key={r.label}>
                           <div className="flex justify-between text-xs mb-1">
                             <span className="text-zinc-400">{r.label}</span>
-                            <span className="text-white font-medium">{r.unit === 'USD' ? `$${r.value.toFixed(2)}` : `${r.value.toLocaleString('ru-RU')} UC`}</span>
+                            <span className="text-white font-medium">{mask(r.unit === 'USD' ? `$${r.value.toFixed(2)}` : `${r.value.toLocaleString('ru-RU')} UC`)}</span>
                           </div>
                           <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                             <div className={`h-full ${r.color} rounded-full transition-all`} style={{ width: `${Math.max(pct, r.value > 0 ? 2 : 0)}%` }} />
@@ -186,7 +200,7 @@ export default function DashboardPage() {
                         <div key={r.label}>
                           <div className="flex justify-between text-xs mb-1">
                             <span className="text-zinc-400">{r.label}</span>
-                            <span className="text-white font-medium">{r.unit === 'USD' ? `$${r.value.toFixed(2)}` : `${r.value.toLocaleString('ru-RU')} UC`}</span>
+                            <span className="text-white font-medium">{mask(r.unit === 'USD' ? `$${r.value.toFixed(2)}` : `${r.value.toLocaleString('ru-RU')} UC`)}</span>
                           </div>
                           <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                             <div className={`h-full ${r.color} rounded-full transition-all`} style={{ width: `${Math.max(pct, r.value > 0 ? 2 : 0)}%` }} />

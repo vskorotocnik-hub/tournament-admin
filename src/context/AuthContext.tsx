@@ -25,6 +25,12 @@ interface AuthContextType {
    * in every page.
    */
   isModerator: boolean;
+  /**
+   * Fine-grained permission check. ADMIN is always a wildcard (returns true
+   * for everything). MODERATOR returns true only if the capability string is
+   * present in `user.capabilities`. Non-staff always returns false.
+   */
+  hasCapability: (cap: string) => boolean;
   loading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   verify2fa: (pending2faToken: string, code: string) => Promise<void>;
@@ -103,6 +109,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isModerator = user?.role === 'MODERATOR';
   const isStaff = isAdmin || isModerator;
 
+  const hasCapability = useCallback((cap: string) => {
+    if (!user) return false;
+    if (user.role === 'ADMIN') return true; // wildcard
+    if (user.role !== 'MODERATOR') return false;
+    return (user.capabilities ?? []).includes(cap);
+  }, [user]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -111,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isStaff,
         isAdmin,
         isModerator,
+        hasCapability,
         loading,
         login,
         verify2fa,
