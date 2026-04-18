@@ -281,28 +281,38 @@ function ThreadBubble({
   chatType: string;
   highlighted: boolean;
 }) {
-  const needsTranslation = useMemo(
+  // Translation is opt-in — moderators click a button instead of us
+  // burning OpenAI tokens on every thread load. We still offer the
+  // button only when it's actually useful (non-Russian user text).
+  const canTranslate = useMemo(
     () => msg.senderType === 'user' && hasLatin(msg.content) && !hasCyrillic(msg.content),
     [msg.senderType, msg.content],
   );
 
   const [translated, setTranslated] = useState<string | null>(null);
-  const [showing, setShowing] = useState<'translated' | 'original'>('translated');
+  const [showing, setShowing] = useState<'translated' | 'original'>('original');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!needsTranslation) return;
-    let cancelled = false;
+  const handleTranslate = async () => {
+    if (loading) return;
+    if (translated) {
+      setShowing(s => (s === 'translated' ? 'original' : 'translated'));
+      return;
+    }
     setLoading(true);
-    apiFetch<{ text: string }>('/api/translate/message', {
-      method: 'POST',
-      body: { messageType: chatType, messageId: msg.id, text: msg.content, targetLang: 'ru' },
-    })
-      .then(r => { if (!cancelled) setTranslated(r.text); })
-      .catch(() => { /* silent — fall back to original */ })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [needsTranslation, chatType, msg.id, msg.content]);
+    try {
+      const r = await apiFetch<{ text: string }>('/api/translate/message', {
+        method: 'POST',
+        body: { messageType: chatType, messageId: msg.id, text: msg.content, targetLang: 'ru' },
+      });
+      setTranslated(r.text);
+      setShowing('translated');
+    } catch {
+      /* silent — keep original visible */
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const display = translated && showing === 'translated' ? translated : msg.content;
 
@@ -333,18 +343,18 @@ function ThreadBubble({
         )}
       </div>
       <p className="whitespace-pre-wrap break-words">{display}</p>
-      {(translated || loading) && (
+      {canTranslate && (
         <button
           type="button"
-          onClick={() => setShowing(s => (s === 'translated' ? 'original' : 'translated'))}
-          disabled={loading || !translated}
+          onClick={handleTranslate}
+          disabled={loading}
           className="mt-1 text-[10px] text-zinc-500 hover:text-zinc-300 disabled:opacity-50"
         >
           {loading
             ? '… перевод'
-            : showing === 'translated'
-              ? '📝 Оригинал'
-              : '🌐 Перевод'}
+            : translated
+              ? showing === 'translated' ? '📝 Оригинал' : '🌐 Перевод'
+              : '🌐 Перевести на русский'}
         </button>
       )}
     </div>
