@@ -197,6 +197,12 @@ export default function IpWhitelistPage() {
                     <code className="text-white font-mono text-sm">{e.ip}</code>
                   </div>
                   <StatusBadge status={e.status} />
+                  {(e.geoCountry || e.geoCity) && (
+                    <span className="text-xs text-zinc-400 bg-zinc-800/70 px-2 py-0.5 rounded flex items-center gap-1">
+                      <span>📍</span>
+                      <span>{[e.geoCity, e.geoCountry].filter(Boolean).join(', ')}</span>
+                    </span>
+                  )}
                   {e.label && (
                     <span className="text-xs text-zinc-300 bg-zinc-800 px-2 py-0.5 rounded">
                       {e.label}
