@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Toaster from './components/Toaster';
@@ -28,7 +29,7 @@ import SecurityPage from './pages/SecurityPage';
 import ModerationPage from './pages/ModerationPage';
 
 function ProtectedRoutes() {
-  const { isAuthenticated, isStaff, loading } = useAuth();
+  const { isAuthenticated, isStaff, loading, ipBlock } = useAuth();
 
   if (loading) {
     return (
@@ -42,6 +43,13 @@ function ProtectedRoutes() {
         </div>
       </div>
     );
+  }
+
+  // IP whitelist block: stored session is valid but this IP isn't
+  // approved. Render a single dedicated screen so no admin page mounts
+  // and floods DevTools with 403s.
+  if (ipBlock) {
+    return <IpBlockedScreen block={ipBlock} />;
   }
 
   if (!isAuthenticated) {
@@ -81,6 +89,57 @@ function ProtectedRoutes() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  );
+}
+
+function IpBlockedScreen({ block }: { block: { ip: string; status: string; message: string } }) {
+  const { refreshUser, logout } = useAuth();
+  const [retrying, setRetrying] = useState(false);
+  const isPending = block.status === 'PENDING';
+  const handleRetry = async () => {
+    setRetrying(true);
+    try {
+      await refreshUser();
+    } finally {
+      setRetrying(false);
+    }
+  };
+  return (
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-zinc-900 border border-amber-500/30 rounded-2xl p-8 text-center space-y-5">
+        <div className="w-20 h-20 rounded-full bg-amber-500/15 flex items-center justify-center mx-auto">
+          <span className="text-4xl">🛡️</span>
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-white">
+            {isPending ? 'Ожидание одобрения IP' : 'IP не одобрен'}
+          </h1>
+          <p className="text-zinc-500 text-sm mt-1">{block.message}</p>
+        </div>
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-left">
+          <p className="text-zinc-400 text-xs mb-1">Ваш IP:</p>
+          <p className="text-amber-300 font-mono text-sm">{block.ip}</p>
+          <p className="text-zinc-500 text-xs mt-2">
+            Статус: <span className="text-zinc-300">{block.status}</span>
+          </p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={handleRetry}
+            disabled={retrying}
+            className="w-full bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 rounded-lg py-2 text-sm font-medium disabled:opacity-50"
+          >
+            {retrying ? 'Проверяем…' : '🔄 Проверить ещё раз'}
+          </button>
+          <button
+            onClick={logout}
+            className="w-full text-zinc-500 hover:text-zinc-300 text-sm py-1"
+          >
+            Выйти
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
