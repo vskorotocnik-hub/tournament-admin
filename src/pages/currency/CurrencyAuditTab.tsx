@@ -12,6 +12,24 @@ const ACTIONS = ['ALL', 'CREATE', 'UPDATE', 'DELETE', 'ADJUST'] as const;
 type EntityFilter = typeof ENTITIES[number];
 type ActionFilter = typeof ACTIONS[number];
 
+// Wire value → user-facing label. The wire value is what the API expects
+// (and what audit rows carry), the label is what we show to operators.
+const ENTITY_LABELS: Record<EntityFilter, string> = {
+  ALL:            'Все',
+  DynamicConfig:  'Настройки',
+  ExchangeRate:   'Курсы',
+  User:           'Пользователь',
+  Payment:        'Платёж',
+};
+
+const ACTION_LABELS: Record<ActionFilter, string> = {
+  ALL:    'Все',
+  CREATE: 'Создание',
+  UPDATE: 'Обновление',
+  DELETE: 'Удаление',
+  ADJUST: 'Коррекция',
+};
+
 export default function CurrencyAuditTab() {
   const [rows, setRows] = useState<AdminAuditEntry[]>([]);
   const [entity, setEntity] = useState<EntityFilter>('ALL');
@@ -37,23 +55,23 @@ export default function CurrencyAuditTab() {
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2 items-center">
         <div>
-          <label className="text-[10px] text-zinc-500 uppercase mr-2">Entity</label>
+          <label className="text-[10px] text-zinc-500 uppercase mr-2">Сущность</label>
           <select
             value={entity}
             onChange={e => setEntity(e.target.value as EntityFilter)}
             className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-xs"
           >
-            {ENTITIES.map(e => <option key={e} value={e}>{e}</option>)}
+            {ENTITIES.map(e => <option key={e} value={e}>{ENTITY_LABELS[e]}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-[10px] text-zinc-500 uppercase mr-2">Action</label>
+          <label className="text-[10px] text-zinc-500 uppercase mr-2">Действие</label>
           <select
             value={action}
             onChange={e => setAction(e.target.value as ActionFilter)}
             className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-xs"
           >
-            {ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+            {ACTIONS.map(a => <option key={a} value={a}>{ACTION_LABELS[a]}</option>)}
           </select>
         </div>
         <button onClick={load} className="ml-auto text-zinc-500 hover:text-white text-sm">↻ обновить</button>
@@ -70,7 +88,7 @@ export default function CurrencyAuditTab() {
               <tr>
                 <th className="text-left px-3 py-2">Дата</th>
                 <th className="text-left px-3 py-2">Кто</th>
-                <th className="text-left px-3 py-2">Role</th>
+                <th className="text-left px-3 py-2">Роль</th>
                 <th className="text-left px-3 py-2">Действие</th>
                 <th className="text-left px-3 py-2">Сущность</th>
                 <th className="text-left px-3 py-2">Причина</th>
@@ -86,10 +104,12 @@ export default function CurrencyAuditTab() {
                     <td className="px-3 py-2 text-white">{r.actor?.username ?? (r.actorId ? r.actorId.slice(0, 8) : '—')}</td>
                     <td className="px-3 py-2 text-zinc-400">{r.actorRole}</td>
                     <td className="px-3 py-2">
-                      <span className={`text-[10px] px-2 py-0.5 rounded border ${actionTone(r.action)}`}>{r.action}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${actionTone(r.action)}`}>
+                        {ACTION_LABELS[r.action as ActionFilter] ?? r.action}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-zinc-300">
-                      {r.entity}
+                      {ENTITY_LABELS[r.entity as EntityFilter] ?? r.entity}
                       {r.entityId && <span className="text-zinc-600"> ({r.entityId.slice(0, 8)})</span>}
                     </td>
                     <td className="px-3 py-2 text-zinc-400 max-w-xs truncate">{r.reason ?? '—'}</td>
@@ -108,13 +128,13 @@ export default function CurrencyAuditTab() {
                       <td colSpan={8} className="px-3 py-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <p className="text-[10px] text-zinc-500 uppercase mb-1">Before</p>
+                            <p className="text-[10px] text-zinc-500 uppercase mb-1">Было</p>
                             <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-[10px] text-zinc-300 overflow-auto max-h-48">
                               {JSON.stringify(r.before ?? '—', null, 2)}
                             </pre>
                           </div>
                           <div>
-                            <p className="text-[10px] text-zinc-500 uppercase mb-1">After</p>
+                            <p className="text-[10px] text-zinc-500 uppercase mb-1">Стало</p>
                             <pre className="bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-[10px] text-zinc-300 overflow-auto max-h-48">
                               {JSON.stringify(r.after ?? '—', null, 2)}
                             </pre>

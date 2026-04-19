@@ -77,13 +77,13 @@ export default function CurrencySandboxTab() {
             onClick={() => { setOp('smartDebit'); setResult(null); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium ${op === 'smartDebit' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-zinc-800 border border-zinc-700 text-zinc-400'}`}
           >
-            smartDebit (покупка)
+            Списание за покупку
           </button>
           <button
             onClick={() => { setOp('convert'); setResult(null); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium ${op === 'convert' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-zinc-800 border border-zinc-700 text-zinc-400'}`}
           >
-            convert (курс)
+            Конвертация по курсу
           </button>
         </div>
 
@@ -98,9 +98,9 @@ export default function CurrencySandboxTab() {
 
             <h4 className="text-white font-semibold mt-4">Параметры списания</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <PocketInput label="Target amount" value={targetAmount} onChange={setTargetAmount} />
+              <PocketInput label="Сумма покупки" value={targetAmount} onChange={setTargetAmount} />
               <div>
-                <label className="text-xs text-zinc-500 uppercase">Target currency</label>
+                <label className="text-xs text-zinc-500 uppercase">Валюта цены</label>
                 <select
                   value={targetCurrency}
                   onChange={e => setTargetCurrency(e.target.value as Currency)}
@@ -132,9 +132,9 @@ export default function CurrencySandboxTab() {
 
         {op === 'convert' && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <PocketInput label="Amount" value={convAmount} onChange={setConvAmount} />
+            <PocketInput label="Сумма" value={convAmount} onChange={setConvAmount} />
             <div>
-              <label className="text-xs text-zinc-500 uppercase">From</label>
+              <label className="text-xs text-zinc-500 uppercase">Из</label>
               <select
                 value={convFrom}
                 onChange={e => setConvFrom(e.target.value as Currency)}
@@ -144,7 +144,7 @@ export default function CurrencySandboxTab() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-zinc-500 uppercase">To</label>
+              <label className="text-xs text-zinc-500 uppercase">В</label>
               <select
                 value={convTo}
                 onChange={e => setConvTo(e.target.value as Currency)}
@@ -172,15 +172,15 @@ export default function CurrencySandboxTab() {
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
           <h3 className="text-white font-semibold mb-3">План списания</h3>
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <Stat label="Всего в target" value={`${result.plan.totalInTarget} ${targetCurrency}`} />
-            <Stat label="Из этого — спред" value={`${result.plan.spreadInTarget} ${targetCurrency}`} />
+            <Stat label="Всего к списанию" value={`${result.plan.totalInTarget} ${targetCurrency}`} />
+            <Stat label="Из них — маржа платформы" value={`${result.plan.spreadInTarget} ${targetCurrency}`} />
           </div>
           <table className="w-full text-xs">
             <thead className="text-zinc-500">
               <tr>
                 <th className="text-left py-1.5">Карман</th>
                 <th className="text-right py-1.5">Списать из кармана</th>
-                <th className="text-right py-1.5">Вклад в target</th>
+                <th className="text-right py-1.5">Вклад в сумму покупки</th>
               </tr>
             </thead>
             <tbody className="text-zinc-300">
@@ -200,9 +200,9 @@ export default function CurrencySandboxTab() {
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
           <h3 className="text-white font-semibold mb-3">Результат конверсии</h3>
           <div className="grid grid-cols-3 gap-3">
-            <Stat label="Вход" value={`${result.input} ${result.from}`} />
-            <Stat label="Выход" value={`${result.output} ${result.to}`} />
-            <Stat label="Cross-rate" value={result.crossRate} />
+            <Stat label="Списано" value={`${result.input} ${result.from}`} />
+            <Stat label="Получено" value={`${result.output} ${result.to}`} />
+            <Stat label="Кросс-курс" value={result.crossRate} />
           </div>
         </div>
       )}

@@ -81,14 +81,14 @@ export default function CurrencyConfigTab() {
     // An empty input OR equal-to-default is treated as "inherit default".
     const defaultPct = Number(spreadDefault);
     if (!Number.isFinite(defaultPct) || defaultPct < 0 || defaultPct > 20) {
-      setError('Default margin must be between 0 and 20 %'); return;
+      setError('Маржа по умолчанию должна быть от 0 до 20 %'); return;
     }
     const perCurrencyPct: Record<string, number> = {};
     for (const [code, raw] of Object.entries(perCurrencyDraft)) {
       if (code === 'USD') continue;
       const n = Number(raw);
       if (raw === '' || !Number.isFinite(n)) continue;
-      if (n < 0 || n > 20) { setError(`${code}: margin must be between 0 and 20 %`); return; }
+      if (n < 0 || n > 20) { setError(`${code}: маржа должна быть от 0 до 20 %`); return; }
       if (n !== defaultPct) perCurrencyPct[code] = n;
     }
     setSaving('spread'); setError(null); setMessage(null);
@@ -277,7 +277,7 @@ export default function CurrencyConfigTab() {
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
         <h3 className="text-white font-semibold mb-3">Комиссия вывода</h3>
         <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-2 items-center">
-          <label className="text-sm text-zinc-400">Fee (%)</label>
+          <label className="text-sm text-zinc-400">Комиссия (%)</label>
           <input
             type="number" step="0.1"
             value={feePct}
@@ -322,11 +322,11 @@ export default function CurrencyConfigTab() {
             checked={togglesDraft.multicurrencyEnabled}
             onChange={e => setTogglesDraft({ ...togglesDraft, multicurrencyEnabled: e.target.checked })}
           />
-          <span className="text-sm text-zinc-200">Мультивалютность включена (kill-switch)</span>
+          <span className="text-sm text-zinc-200">Мультивалютность включена (аварийный выключатель)</span>
         </label>
 
         <div className="mb-3">
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Storage pockets</p>
+          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Карманы хранения</p>
           <div className="flex flex-wrap gap-2">
             {STORAGE.map(s => {
               const on = togglesDraft.enabledStorage.includes(s);
@@ -349,7 +349,7 @@ export default function CurrencyConfigTab() {
         </div>
 
         <div className="mb-3">
-          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Display currencies</p>
+          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Валюты отображения</p>
           <div className="flex flex-wrap gap-2">
             {ALL.map(c => {
               const on = togglesDraft.enabledDisplay.includes(c);

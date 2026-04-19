@@ -8,6 +8,17 @@ import { adminCurrencyApi, type AdminPaymentLog } from '../../lib/currencyApi';
 const STATUS_FILTERS = ['ALL', 'PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED'] as const;
 type Status = typeof STATUS_FILTERS[number];
 
+// Wire value → Russian label. The wire value is what we send to the API;
+// the label is what we render on the chip / badge.
+const STATUS_LABELS: Record<Status, string> = {
+  ALL:        'Все',
+  PENDING:    'Ожидание',
+  PROCESSING: 'В обработке',
+  COMPLETED:  'Завершено',
+  FAILED:     'Ошибка',
+  REFUNDED:   'Возврат',
+};
+
 export default function CurrencyPaymentsTab() {
   const [rows, setRows] = useState<AdminPaymentLog[]>([]);
   const [status, setStatus] = useState<Status>('PENDING');
@@ -69,7 +80,7 @@ export default function CurrencyPaymentsTab() {
             onClick={() => setStatus(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium ${status === s ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:text-white'}`}
           >
-            {s}
+            {STATUS_LABELS[s]}
           </button>
         ))}
         <button onClick={load} className="ml-auto text-zinc-500 hover:text-white text-sm">↻ обновить</button>
@@ -85,9 +96,9 @@ export default function CurrencyPaymentsTab() {
             <thead className="bg-zinc-950 text-zinc-500">
               <tr>
                 <th className="text-left px-3 py-2">Дата</th>
-                <th className="text-left px-3 py-2">User</th>
+                <th className="text-left px-3 py-2">Пользователь</th>
                 <th className="text-left px-3 py-2">Тип</th>
-                <th className="text-left px-3 py-2">Provider</th>
+                <th className="text-left px-3 py-2">Провайдер</th>
                 <th className="text-right px-3 py-2">Сумма</th>
                 <th className="text-left px-3 py-2">Статус</th>
                 <th className="text-right px-3 py-2 w-40">Действия</th>
@@ -99,13 +110,15 @@ export default function CurrencyPaymentsTab() {
                   <td className="px-3 py-2 text-zinc-400">{new Date(p.createdAt).toLocaleString('ru-RU')}</td>
                   <td className="px-3 py-2 text-white">{p.user?.username ?? p.userId.slice(0, 8)}</td>
                   <td className="px-3 py-2">
-                    <span className={p.kind === 'DEPOSIT' ? 'text-emerald-400' : 'text-yellow-400'}>{p.kind}</span>
+                    <span className={p.kind === 'DEPOSIT' ? 'text-emerald-400' : 'text-yellow-400'}>
+                      {p.kind === 'DEPOSIT' ? 'Пополнение' : 'Вывод'}
+                    </span>
                   </td>
                   <td className="px-3 py-2 text-zinc-400">{p.provider} / {p.method}</td>
                   <td className="px-3 py-2 text-right text-white font-mono">
                     {Number(p.amount).toFixed(2)} {p.currency}
                     {p.feeAmount && Number(p.feeAmount) > 0 && (
-                      <div className="text-[10px] text-zinc-500">fee {Number(p.feeAmount).toFixed(2)}</div>
+                      <div className="text-[10px] text-zinc-500">комиссия {Number(p.feeAmount).toFixed(2)}</div>
                     )}
                   </td>
                   <td className="px-3 py-2">
@@ -120,14 +133,14 @@ export default function CurrencyPaymentsTab() {
                           disabled={busyId === p.id}
                           className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] disabled:bg-zinc-700"
                         >
-                          Approve
+                          Одобрить
                         </button>
                         <button
                           onClick={() => reject(p.id)}
                           disabled={busyId === p.id}
                           className="px-2 py-1 rounded bg-red-600 hover:bg-red-500 text-white text-[10px] disabled:bg-zinc-700"
                         >
-                          Reject
+                          Отклонить
                         </button>
                       </div>
                     )}
@@ -149,5 +162,5 @@ function StatusBadge({ status }: { status: AdminPaymentLog['status'] }) {
     status === 'REFUNDED'  ? 'bg-purple-500/15 text-purple-300 border-purple-500/30' :
     status === 'PENDING'   ? 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30' :
                              'bg-blue-500/15 text-blue-300 border-blue-500/30';
-  return <span className={`text-[10px] px-2 py-0.5 rounded border ${tone}`}>{status}</span>;
+  return <span className={`text-[10px] px-2 py-0.5 rounded border ${tone}`}>{STATUS_LABELS[status as Status] ?? status}</span>;
 }

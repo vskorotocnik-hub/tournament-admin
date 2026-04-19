@@ -16,6 +16,22 @@ const REASONS = [
 
 type Reason = typeof REASONS[number];
 
+// Wire value → Russian label. Values are what the API filters by.
+const REASON_LABELS: Record<Reason, string> = {
+  ALL:                   'Все причины',
+  DEPOSIT:               'Пополнение',
+  UC_PURCHASE:           'Покупка UC',
+  MARKETPLACE_PURCHASE:  'Покупка на маркетплейсе',
+  MARKETPLACE_PAYOUT:    'Выплата продавцу',
+  WITHDRAWAL:            'Вывод средств',
+  WITHDRAWAL_FEE:        'Комиссия за вывод',
+  HOLD:                  'Задержка (hold)',
+  HOLD_RELEASE:          'Снятие задержки',
+  HOLD_COMMIT:           'Списание из задержки',
+  REFUND:                'Возврат',
+  MANUAL:                'Ручная коррекция',
+};
+
 export default function CurrencyConversionsTab() {
   const [rows, setRows] = useState<AdminConversionLog[]>([]);
   const [reason, setReason] = useState<Reason>('ALL');
@@ -46,12 +62,12 @@ export default function CurrencyConversionsTab() {
           onChange={e => setReason(e.target.value as Reason)}
           className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-xs"
         >
-          {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+          {REASONS.map(r => <option key={r} value={r}>{REASON_LABELS[r]}</option>)}
         </select>
         <input
           value={userFilter}
           onChange={e => setUserFilter(e.target.value)}
-          placeholder="userId (опционально)"
+          placeholder="ID пользователя (опционально)"
           className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-white text-xs w-60"
         />
         <button onClick={load} className="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs border border-zinc-700">Применить</button>
@@ -73,13 +89,13 @@ export default function CurrencyConversionsTab() {
             <thead className="bg-zinc-950 text-zinc-500">
               <tr>
                 <th className="text-left px-3 py-2">Дата</th>
-                <th className="text-left px-3 py-2">User</th>
-                <th className="text-left px-3 py-2">Reason</th>
-                <th className="text-left px-3 py-2">Pocket</th>
-                <th className="text-right px-3 py-2">From</th>
-                <th className="text-right px-3 py-2">To</th>
-                <th className="text-right px-3 py-2">Rate</th>
-                <th className="text-right px-3 py-2">Margin</th>
+                <th className="text-left px-3 py-2">Пользователь</th>
+                <th className="text-left px-3 py-2">Причина</th>
+                <th className="text-left px-3 py-2">Карман</th>
+                <th className="text-right px-3 py-2">Откуда</th>
+                <th className="text-right px-3 py-2">Куда</th>
+                <th className="text-right px-3 py-2">Курс</th>
+                <th className="text-right px-3 py-2">Маржа</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
@@ -87,7 +103,7 @@ export default function CurrencyConversionsTab() {
                 <tr key={r.id} className={`hover:bg-zinc-950/50 ${r.parentId ? 'opacity-70 text-[10px]' : ''}`}>
                   <td className="px-3 py-2 text-zinc-400">{new Date(r.createdAt).toLocaleString('ru-RU')}</td>
                   <td className="px-3 py-2 text-white">{r.user?.username ?? r.userId.slice(0, 8)}</td>
-                  <td className="px-3 py-2 text-zinc-300">{r.parentId ? '↳' : ''} {r.reason}</td>
+                  <td className="px-3 py-2 text-zinc-300">{r.parentId ? '↳ ' : ''}{REASON_LABELS[r.reason as Reason] ?? r.reason}</td>
                   <td className="px-3 py-2 text-zinc-400">{r.pocketFrom ?? '—'} → {r.pocketTo ?? '—'}</td>
                   <td className="px-3 py-2 text-right text-zinc-300 font-mono">{Number(r.fromAmount).toFixed(2)} {r.fromCurrency}</td>
                   <td className="px-3 py-2 text-right text-white font-mono">{Number(r.toAmount).toFixed(2)} {r.toCurrency}</td>
@@ -144,7 +160,7 @@ function AdjustModal({ onClose }: { onClose: () => void }) {
 
         <div className="space-y-3">
           <label className="block">
-            <span className="text-xs text-zinc-500 uppercase">User ID</span>
+            <span className="text-xs text-zinc-500 uppercase">ID пользователя</span>
             <input
               value={userId}
               onChange={e => setUserId(e.target.value)}
@@ -199,7 +215,7 @@ function AdjustModal({ onClose }: { onClose: () => void }) {
           {submitting ? 'Применение...' : 'Применить'}
         </button>
         <p className="text-[10px] text-zinc-600 mt-2">
-          Корректировка запишется в CurrencyConversion с reason=MANUAL и отдельной записью в AdminAuditLog.
+          Операция запишется в журнал конверсий с причиной «Ручная коррекция» и отдельной записью в аудит-логе.
         </p>
       </div>
     </div>
