@@ -11,6 +11,7 @@ import UnifiedTournamentsPage from './pages/UnifiedTournamentsPage';
 import SupportPage from './pages/SupportPage';
 import ClanManagementPage from './pages/ClanManagementPage';
 import WithdrawalsPage from './pages/WithdrawalsPage';
+import CurrencyPage from './pages/CurrencyPage';
 import AccountManagementPage from './pages/AccountManagementPage';
 import BoostManagementPage from './pages/BoostManagementPage';
 import SettingsPage from './pages/SettingsPage';
@@ -72,6 +73,7 @@ function ProtectedRoutes() {
         <Route path="tournaments" element={<UnifiedTournamentsPage />} />
         <Route path="clan" element={<ClanManagementPage />} />
         <Route path="finances" element={<WithdrawalsPage />} />
+        <Route path="currency" element={<CurrencyPage />} />
         <Route path="support" element={<SupportPage />} />
         <Route path="moderation" element={<ModerationPage />} />
         <Route path="referral" element={<ReferralStatsPage />} />

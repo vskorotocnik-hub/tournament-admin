@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
   { path: '/lessons', label: 'Обучение', icon: '📚', cap: 'lessons.view' },
   { path: '/ip-monitor', label: 'IP Monitor', icon: '🔍', cap: 'ip_monitor.view' },
   { path: '/finances', label: 'Финансы', icon: '💰', cap: 'finances.view' },
+  { path: '/currency', label: 'Мультивалюта', icon: '💱', cap: 'finances.view' },
   { path: '/support', label: 'Поддержка', icon: '💬', cap: 'support.view' },
   { path: '/moderation', label: 'Модерация чатов', icon: '🚨', cap: 'moderation.view' },
   { path: '/banners', label: 'Банеры', icon: '🖼️', cap: 'banners.view' },
