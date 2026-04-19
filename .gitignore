@@ -1,2 +1,18 @@
 .vercel
 .env*.local
+
+# Dependencies — must NOT be committed. Committing node_modules was
+# breaking Vercel: their build cache was restoring stale `.bin/tsc`
+# shims (regular files, not symlinks) that overrode the fresh npm
+# install and killed `npm run build` with "Cannot find module '../lib/tsc.js'".
+node_modules
+node_modules/
+
+# Build artifacts — produced by `npm run build`, should not be tracked.
+dist
+dist/
+
+# Misc
+.DS_Store
+*.log
+*.tsbuildinfo
