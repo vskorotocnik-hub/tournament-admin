@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as questApi from '../lib/questApi';
 import type { Quest, QuestDetail, QuestProgressItem, CreateQuestData } from '../lib/questApi';
 import { toast } from '../lib/toast';
+import { i18nStr } from '../lib/i18n';
 
 const CONDITION_TYPES = [
   { value: 'PLAY_TOURNAMENT', label: '🎮 Сыграть в турнир (TDM 2v2/3v3/4v4)' },
@@ -74,7 +75,7 @@ export default function QuestsPage() {
   };
 
   const handleDelete = async (q: Quest) => {
-    if (!confirm(`Удалить задание "${q.title}"?`)) return;
+    if (!confirm(`Удалить задание "${i18nStr(q.title)}"?`)) return;
     try {
       await questApi.deleteQuest(q.id);
       await load();
@@ -120,10 +121,10 @@ export default function QuestsPage() {
               <div className="text-2xl w-10 text-center">{q.icon || '📋'}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-white font-medium text-sm truncate">{q.title}</span>
+                  <span className="text-white font-medium text-sm truncate">{i18nStr(q.title)}</span>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${st.color}`}>{st.label}</span>
                 </div>
-                <p className="text-xs text-zinc-500 truncate">{q.description}</p>
+                <p className="text-xs text-zinc-500 truncate">{i18nStr(q.description)}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   {q.isDaily && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">⏰ Ежедневное</span>}
                 </div>
@@ -204,8 +205,8 @@ export default function QuestsPage() {
 
 function QuestFormModal({ quest, onClose, onSaved }: { quest: Quest | null; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState<CreateQuestData>({
-    title: quest?.title || '',
-    description: quest?.description || '',
+    title: i18nStr(quest?.title),
+    description: i18nStr(quest?.description),
     icon: quest?.icon || '',
     conditionType: quest?.conditionType || 'PLAY_TOURNAMENT',
     conditionParams: quest?.conditionParams || {},
@@ -473,8 +474,8 @@ function QuestDetailModal({ quest, onClose, onChanged }: { quest: QuestDetail; o
         <div className="flex items-center gap-3">
           <span className="text-3xl">{quest.icon || '📋'}</span>
           <div>
-            <h2 className="text-lg font-bold text-white">{quest.title}</h2>
-            <p className="text-xs text-zinc-500">{quest.description}</p>
+            <h2 className="text-lg font-bold text-white">{i18nStr(quest.title)}</h2>
+            <p className="text-xs text-zinc-500">{i18nStr(quest.description)}</p>
           </div>
         </div>
 

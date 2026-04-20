@@ -4,14 +4,32 @@
  * but admin UI expects plain strings for display.
  */
 
-export function i18nStr(val: unknown, lang = 'ru'): string {
-  if (!val) return '';
+/** The three languages the backend fills. Anything else is treated as
+ * a regular Json blob (e.g. `conditionParams`) and not touched. */
+const LANG_KEYS = ['ru', 'en', 'uk'] as const;
+type Lang = typeof LANG_KEYS[number];
+const LANG_SET = new Set<string>(LANG_KEYS);
+
+/** Coerce any possibly-null/undefined i18n field value to a string,
+ * preferring the requested language and falling back through ru → en → uk
+ * → any other stringy value. */
+export function i18nStr(val: unknown, lang: Lang = 'ru'): string {
+  if (val == null) return '';
   if (typeof val === 'string') return val;
-  if (typeof val === 'object' && val !== null) {
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (typeof val === 'object') {
     const obj = val as Record<string, unknown>;
-    return String(obj[lang] || obj.ru || '');
+    const pick =
+      obj[lang] ??
+      obj.ru ??
+      obj.en ??
+      obj.uk ??
+      Object.values(obj).find(v => typeof v === 'string' && v.length > 0);
+    if (typeof pick === 'string') return pick;
+    if (pick != null) return String(pick);
+    return '';
   }
-  return String(val);
+  return '';
 }
 
 /** Extract the i18n object for editing (form state) */
@@ -20,27 +38,39 @@ export function i18nObj(val: unknown): { ru: string; en: string; uk: string } {
   if (typeof val === 'string') return { ru: val, en: '', uk: '' };
   if (typeof val === 'object' && val !== null) {
     const obj = val as Record<string, unknown>;
-    return { ru: String(obj.ru || ''), en: String(obj.en || ''), uk: String(obj.uk || '') };
+    const s = (k: string) => {
+      const v = obj[k];
+      return typeof v === 'string' ? v : v == null ? '' : String(v);
+    };
+    return { ru: s('ru'), en: s('en'), uk: s('uk') };
   }
   return { ru: '', en: '', uk: '' };
 }
 
 /**
  * Recursively normalize all i18n JSON objects to strings in API response.
- * Detects objects with 'ru' key and converts to string value.
+ *
+ * Detection rule: an object is treated as an i18n blob iff
+ *   - it has at least one of {ru, en, uk} keys, AND
+ *   - every own key is one of {ru, en, uk}.
+ *
+ * That correctly distinguishes `{ru, en, uk}` / `{ru}` / `{ru: null, en: ''}`
+ * (all i18n) from arbitrary Json payloads like `conditionParams` or
+ * `_count` (left untouched). The previous heuristic (`typeof obj.ru === 'string' && length <= 3`)
+ * failed on partial blobs where `ru` was null/empty, leaking the raw object
+ * into JSX and tripping React error #31.
  */
-export function normalizeI18nResponse(data: unknown, lang = 'ru'): unknown {
-  if (!data) return data;
+export function normalizeI18nResponse(data: unknown, lang: Lang = 'ru'): unknown {
+  if (data == null) return data;
   if (typeof data !== 'object') return data;
   if (Array.isArray(data)) {
     return data.map(item => normalizeI18nResponse(item, lang));
   }
   const obj = data as Record<string, unknown>;
-  // Check if this is an i18n object (has 'ru' key and looks like {ru, en, uk})
-  if ('ru' in obj && typeof obj.ru === 'string' && Object.keys(obj).length <= 3) {
+  const keys = Object.keys(obj);
+  if (keys.length > 0 && keys.every(k => LANG_SET.has(k)) && keys.some(k => LANG_SET.has(k))) {
     return i18nStr(obj, lang);
   }
-  // Recursively process nested objects
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     result[key] = normalizeI18nResponse(value, lang);
