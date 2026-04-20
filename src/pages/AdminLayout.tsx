@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authApi, type TwoFaStatus } from '../lib/api';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { useInboxCounts } from '../hooks/useInboxCounts';
 
 /**
  * Sidebar navigation. Each item declares the capability required to SEE
@@ -14,6 +15,7 @@ type NavItem = { path: string; label: string; icon: string; end?: boolean; cap?:
 
 const navItems: NavItem[] = [
   { path: '/', label: 'Дашборд', icon: '📊', end: true, cap: 'dashboard.view' },
+  { path: '/inbox', label: 'Срочные', icon: '📨' },
   { path: '/users', label: 'Пользователи', icon: '👥', cap: 'users.view' },
   { path: '/listings', label: 'Аренда', icon: '🔑', cap: 'rental.view' },
   { path: '/accounts', label: 'Аккаунты', icon: '🛒', cap: 'listings.view' },
@@ -55,6 +57,14 @@ export default function AdminLayout() {
   // see links whose capability they hold. Items without a cap are always
   // visible (there shouldn't be any now, but keep it forward-compatible).
   const visibleNavItems = navItems.filter(item => !item.cap || hasCapability(item.cap));
+
+  // Fresh "things to do" counters per section (polled every 30s inside the hook).
+  const { counts: inboxCounts } = useInboxCounts();
+  const badgeFor = (path: string): number => {
+    if (!inboxCounts) return 0;
+    if (path === '/inbox') return inboxCounts.total;
+    return inboxCounts.bySection[path] ?? 0;
+  };
 
   // 2FA gating: privileged roles must enable 2FA before they can use anything.
   const [twoFa, setTwoFa] = useState<TwoFaStatus | null>(null);
@@ -101,24 +111,42 @@ export default function AdminLayout() {
 
         {/* Навигация */}
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-          {visibleNavItems.map(item => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.end}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-emerald-500/15 text-emerald-400'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
-                }`
-              }
-            >
-              <span className="text-lg">{item.icon}</span>
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {visibleNavItems.map(item => {
+            const count = badgeFor(item.path);
+            const isInbox = item.path === '/inbox';
+            const hasUrgent = isInbox && (inboxCounts?.urgent ?? 0) > 0;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.end}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-emerald-500/15 text-emerald-400'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800/60'
+                  }`
+                }
+              >
+                <span className="text-lg">{item.icon}</span>
+                <span className="flex-1">{item.label}</span>
+                {count > 0 && (
+                  <span
+                    className={`inline-flex items-center justify-center min-w-[1.4rem] h-5 px-1.5 rounded-full text-[10px] font-bold leading-none ${
+                      hasUrgent
+                        ? 'bg-red-500 text-white animate-pulse'
+                        : isInbox
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-amber-500/80 text-zinc-900'
+                    }`}
+                  >
+                    {count > 99 ? '99+' : count}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
 
         {/* Низ */}

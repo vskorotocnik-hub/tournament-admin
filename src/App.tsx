@@ -28,6 +28,7 @@ import GlobalTournamentsPage from './pages/GlobalTournamentsPage';
 import AuditLogPage from './pages/AuditLogPage';
 import SecurityPage from './pages/SecurityPage';
 import ModerationPage from './pages/ModerationPage';
+import InboxPage from './pages/InboxPage';
 
 function ProtectedRoutes() {
   const { isAuthenticated, isStaff, loading, ipBlock } = useAuth();
@@ -76,6 +77,7 @@ function ProtectedRoutes() {
         <Route path="currency" element={<CurrencyPage />} />
         <Route path="support" element={<SupportPage />} />
         <Route path="moderation" element={<ModerationPage />} />
+        <Route path="inbox" element={<InboxPage />} />
         <Route path="referral" element={<ReferralStatsPage />} />
         <Route path="quests" element={<QuestsPage />} />
         <Route path="ip-monitor" element={<IpMonitorPage />} />
